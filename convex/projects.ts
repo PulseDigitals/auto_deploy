@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { ConvexError } from "convex/values";
 
@@ -28,6 +28,13 @@ export const getProject = query({
   },
 });
 
+export const getProjectInternal = internalQuery({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.projectId);
+  },
+});
+
 export const createProject = mutation({
   args: {
     userId: v.string(),
@@ -39,9 +46,27 @@ export const createProject = mutation({
       userId: args.userId,
       name: args.name,
       gitRepoUrl: args.gitRepoUrl,
+      status: "created",
       createdAt: Date.now(),
     });
     return projectId;
+  },
+});
+
+export const updateProjectStatus = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+    status: v.union(
+      v.literal("created"),
+      v.literal("analyzing"),
+      v.literal("analyzed"),
+      v.literal("error")
+    ),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.projectId, {
+      status: args.status,
+    });
   },
 });
 

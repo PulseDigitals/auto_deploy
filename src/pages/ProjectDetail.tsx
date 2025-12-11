@@ -1,24 +1,28 @@
 import { useParams, Link } from "react-router-dom";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const projectId = id as Id<"projects">;
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
     projectId,
   });
   const domains = useQuery(api.domains.listDomainsByProject, { projectId });
+  const manifest = useQuery(api.manifests.getManifestByProject, { projectId });
 
   const createDeployment = useMutation(api.deployments.createDeployment);
+  const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
 
   const handleDeploy = async () => {
     try {
@@ -29,6 +33,19 @@ export default function ProjectDetail() {
       toast.success("Deployment initiated!");
     } catch (error) {
       toast.error("Failed to create deployment");
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setIsAnalyzing(true);
+    try {
+      await analyzeCodebase({ projectId });
+      toast.success("AI analysis complete!");
+    } catch (error) {
+      toast.error("Failed to analyze codebase");
+      console.error(error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -85,18 +102,50 @@ export default function ProjectDetail() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                AI-powered manifest generation and deployment optimization
-                coming soon. This will automatically detect your framework,
-                configure build settings, and recommend the best deployment
-                strategy.
-              </p>
-            </div>
-            <Button variant="outline" disabled className="w-full gap-2">
-              <Sparkles className="h-4 w-4" />
-              Analyze & Deploy with AI
-            </Button>
+            {!manifest ? (
+              <>
+                <div className="p-4 bg-muted/50 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    AI-powered manifest generation will automatically detect
+                    your framework, configure build settings, and recommend the
+                    best deployment strategy.
+                  </p>
+                </div>
+                <Button
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing}
+                  className="w-full gap-2"
+                >
+                  {isAnalyzing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4" />
+                      Analyze with AI
+                    </>
+                  )}
+                </Button>
+              </>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-green-400">
+                    ✓ Analysis Complete
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                  >
+                    Re-analyze
+                  </Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -131,6 +180,36 @@ export default function ProjectDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Manifest Display */}
+      {manifest && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-400" />
+              Deployment Manifest
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="bg-slate-900 p-4 rounded-lg overflow-auto text-slate-300 text-sm max-h-96">
+              {JSON.stringify(
+                {
+                  framework: manifest.framework,
+                  frontend: manifest.frontend,
+                  backend: manifest.backend,
+                  buildCommand: manifest.buildCommand,
+                  startCommand: manifest.startCommand,
+                  envVars: manifest.envVars,
+                  recommendedProvider: manifest.recommendedProvider,
+                  notes: manifest.notes,
+                },
+                null,
+                2
+              )}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Deployments */}
       <Card>

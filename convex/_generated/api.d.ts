@@ -8,8 +8,10 @@
  * @module
  */
 
+import type * as analyzeCodebase from "../analyzeCodebase.js";
 import type * as deployments from "../deployments.js";
 import type * as domains from "../domains.js";
+import type * as manifests from "../manifests.js";
 import type * as projects from "../projects.js";
 import type * as users from "../users.js";
 import type * as zipUpload from "../zipUpload.js";
@@ -21,8 +23,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analyzeCodebase: typeof analyzeCodebase;
   deployments: typeof deployments;
   domains: typeof domains;
+  manifests: typeof manifests;
   projects: typeof projects;
   users: typeof users;
   zipUpload: typeof zipUpload;

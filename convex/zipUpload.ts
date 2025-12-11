@@ -14,8 +14,7 @@ export const uploadZipMetadata = mutation({
     // In the future, this will:
     // 1. Store the ZIP file in Convex file storage
     // 2. Extract and analyze the contents
-    // 3. Generate a manifest using AI
-    // 4. Store the manifest in the manifests table
+    // 3. Use the AI analyzer (analyzeCodebase action) to generate a manifest
     
     console.log("ZIP upload received:", {
       projectId: args.projectId,
@@ -23,17 +22,9 @@ export const uploadZipMetadata = mutation({
       size: args.size,
     });
 
-    // Create a stub manifest entry
-    const manifestId = await ctx.db.insert("manifests", {
-      projectId: args.projectId,
-      manifestJson: JSON.stringify({
-        fileName: args.fileName,
-        size: args.size,
-        timestamp: Date.now(),
-        status: "pending_analysis",
-      }),
-    });
-
-    return manifestId;
+    // Note: No manifest is created here anymore.
+    // User must click "Analyze with AI" to generate the manifest.
+    
+    return null;
   },
 });

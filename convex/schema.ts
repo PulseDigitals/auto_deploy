@@ -12,6 +12,12 @@ export default defineSchema({
     userId: v.string(),
     name: v.string(),
     gitRepoUrl: v.optional(v.string()),
+    status: v.optional(v.union(
+      v.literal("created"),
+      v.literal("analyzing"),
+      v.literal("analyzed"),
+      v.literal("error")
+    )),
     createdAt: v.number(),
   }).index("by_user", ["userId"]),
 
@@ -40,6 +46,14 @@ export default defineSchema({
 
   manifests: defineTable({
     projectId: v.id("projects"),
-    manifestJson: v.string(),
+    framework: v.string(),
+    frontend: v.boolean(),
+    backend: v.boolean(),
+    buildCommand: v.string(),
+    startCommand: v.string(),
+    envVars: v.array(v.string()),
+    recommendedProvider: v.string(),
+    notes: v.string(),
+    createdAt: v.number(),
   }).index("by_project", ["projectId"]),
 });
