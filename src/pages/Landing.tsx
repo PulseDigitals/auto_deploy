@@ -30,25 +30,7 @@ export default function Landing() {
               <Button size="lg" className="gap-2">
                 <Rocket className="h-5 w-5" />
                 Get Started
-              import { useNavigate } from "react-router-dom";
-
-export default function Landing() {
-  const navigate = useNavigate();
-
-  return (
-    <div className="flex flex-col items-center justify-center text-center py-20">
-      {/* ...title and text... */}
-
-      <button
-        onClick={() => navigate("/dashboard")}
-        className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition"
-      >
-        Get Started
-      </button>
-    </div>
-  );
-}
-
+              </Button>
             </Link>
           </div>
         </div>
