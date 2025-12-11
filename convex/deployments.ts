@@ -3,56 +3,49 @@ import { v } from "convex/values";
 
 export const listDeploymentsByProject = query({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, args) => {
-    const allDeployments = await ctx.db.query("deployments").collect();
-    return allDeployments
-      .filter((d) => d.projectId === args.projectId)
-      .sort((a, b) => b.createdAt - a.createdAt);
+  handler: async (ctx, { projectId }) => {
+    return await ctx.db
+      .query("deployments")
+      .withIndex("by_projectId", (q) => q.eq("projectId", projectId))
+      .order("desc")
+      .collect()
+      .catch(async () => {
+        // Fallback if index doesn't exist: simple full scan (OK for MVP)
+        const all = await ctx.db.query("deployments").order("desc").collect();
+        return all.filter((d) => d.projectId === projectId);
+      });
   },
 });
 
 export const listAllDeployments = query({
   args: {},
   handler: async (ctx) => {
-    // Get all deployments
-    const allDeployments = await ctx.db
-      .query("deployments")
-      .order("desc")
-      .collect();
-
-    return allDeployments;
+    return await ctx.db.query("deployments").order("desc").collect();
   },
 });
 
 export const createDeployment = mutation({
   args: {
     projectId: v.id("projects"),
-    provider: v.string(),
+    provider: v.string(), // e.g. "Vercel", "Netlify", "Render"
   },
-  handler: async (ctx, args) => {
-    const deploymentId = await ctx.db.insert("deployments", {
-      projectId: args.projectId,
+  handler: async (ctx, { projectId, provider }) => {
+    const id = await ctx.db.insert("deployments", {
+      projectId,
+      provider,
       status: "pending",
-      provider: args.provider,
       createdAt: Date.now(),
     });
-    return deploymentId;
+    return id;
   },
 });
 
 export const updateDeploymentStatus = mutation({
   args: {
     deploymentId: v.id("deployments"),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("running"),
-      v.literal("success"),
-      v.literal("failed")
-    ),
+    status: v.string(),
   },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.deploymentId, {
-      status: args.status,
-    });
+  handler: async (ctx, { deploymentId, status }) => {
+    await ctx.db.patch(deploymentId, { status });
   },
 });

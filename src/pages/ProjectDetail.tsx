@@ -13,6 +13,7 @@ export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const projectId = id as Id<"projects">;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
 
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
@@ -25,14 +26,19 @@ export default function ProjectDetail() {
   const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
 
   const handleDeploy = async () => {
+    if (!project) return;
     try {
+      setIsDeploying(true);
+      // For MVP, always use "Vercel" as provider
       await createDeployment({
         projectId,
-        provider: "AWS",
+        provider: "Vercel",
       });
       toast.success("Deployment initiated!");
     } catch (error) {
       toast.error("Failed to create deployment");
+    } finally {
+      setIsDeploying(false);
     }
   };
 
@@ -104,9 +110,9 @@ export default function ProjectDetail() {
             </div>
           )}
         </div>
-        <Button onClick={handleDeploy} className="gap-2">
+        <Button onClick={handleDeploy} disabled={isDeploying} className="gap-2">
           <Rocket className="h-4 w-4" />
-          Deploy Now
+          {isDeploying ? "Deploying..." : "Deploy Now"}
         </Button>
       </div>
 

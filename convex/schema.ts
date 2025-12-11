@@ -21,7 +21,7 @@ export default defineSchema({
     provider: v.string(),
     status: v.string(), // "pending" | "running" | "success" | "failed"
     createdAt: v.number(),
-  }),
+  }).index("by_projectId", ["projectId"]),
 
   domains: defineTable({
     projectId: v.id("projects"),
