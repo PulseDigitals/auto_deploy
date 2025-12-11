@@ -1,29 +1,18 @@
-import { Menu, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { useAuth } from "@/hooks/use-auth.ts";
 
-interface TopbarProps {
-  onMenuClick: () => void;
-}
-
-export default function Topbar({ onMenuClick }: TopbarProps) {
+export default function Topbar() {
   const { user, signoutRedirect } = useAuth();
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
-      <button
-        onClick={onMenuClick}
-        className="lg:hidden p-2 hover:bg-muted rounded-md"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-
-      <div className="flex-1 lg:ml-0" />
+    <header className="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
+      <div className="flex-1" />
 
       <div className="flex items-center gap-4">
         <div className="hidden sm:flex flex-col items-end">
           <p className="text-sm font-medium">{user?.profile.name || "User"}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-400">
             {user?.profile.email || "user@example.com"}
           </p>
         </div>

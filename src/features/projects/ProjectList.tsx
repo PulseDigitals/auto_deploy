@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { Doc } from "@/convex/_generated/dataModel.d.ts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
@@ -17,6 +17,7 @@ interface ProjectListProps {
 }
 
 export default function ProjectList({ projects }: ProjectListProps) {
+  const navigate = useNavigate();
   if (projects === undefined) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -53,7 +54,11 @@ export default function ProjectList({ projects }: ProjectListProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {projects.map((project) => (
-        <Card key={project._id} className="hover:border-primary/50 transition-colors">
+        <Card
+          key={project._id}
+          onClick={() => navigate(`/dashboard/projects/${project._id}`)}
+          className="cursor-pointer hover:bg-slate-800 hover:border-primary/50 transition-colors"
+        >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderGit2 className="h-5 w-5 text-muted-foreground" />
@@ -70,12 +75,10 @@ export default function ProjectList({ projects }: ProjectListProps) {
             <div className="text-xs text-muted-foreground">
               Created {new Date(project.createdAt).toLocaleDateString()}
             </div>
-            <Link to={`/dashboard/projects/${project._id}`}>
-              <Button variant="outline" size="sm" className="w-full gap-2">
-                <ExternalLink className="h-4 w-4" />
-                View Details
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" className="w-full gap-2">
+              <ExternalLink className="h-4 w-4" />
+              View Details
+            </Button>
           </CardContent>
         </Card>
       ))}
