@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listDeploymentsByProject = query({
@@ -30,11 +30,14 @@ export const createDeployment = mutation({
     provider: v.string(), // e.g. "Vercel", "Netlify", "Render"
   },
   handler: async (ctx, { projectId, provider }) => {
+    const now = Date.now();
     const id = await ctx.db.insert("deployments", {
       projectId,
       provider,
       status: "pending",
-      createdAt: Date.now(),
+      createdAt: now,
+      updatedAt: now,
+      logs: [],
     });
     return id;
   },
@@ -47,5 +50,26 @@ export const updateDeploymentStatus = mutation({
   },
   handler: async (ctx, { deploymentId, status }) => {
     await ctx.db.patch(deploymentId, { status });
+  },
+});
+
+// Internal mutation for scheduler to update deployment status and logs
+export const updateStatus = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+    status: v.string(),
+    log: v.optional(v.string()),
+  },
+  handler: async (ctx, { deploymentId, status, log }) => {
+    const deployment = await ctx.db.get(deploymentId);
+    if (!deployment) return;
+
+    await ctx.db.patch(deploymentId, {
+      status,
+      updatedAt: Date.now(),
+      logs: log
+        ? [...(deployment.logs || []), log]
+        : deployment.logs || [],
+    });
   },
 });

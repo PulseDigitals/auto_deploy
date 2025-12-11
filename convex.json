@@ -5,5 +5,12 @@
       "openai"
     ]
   },
-  "$schema": "https://raw.githubusercontent.com/get-convex/convex-backend/refs/heads/main/npm-packages/convex/schemas/convex.schema.json"
+  "$schema": "https://raw.githubusercontent.com/get-convex/convex-backend/refs/heads/main/npm-packages/convex/schemas/convex.schema.json",
+  "crons": [
+    {
+      "name": "deployment-tick",
+      "schedule": "*/5 * * * * *",
+      "command": "scheduler:tick"
+    }
+  ]
 }
