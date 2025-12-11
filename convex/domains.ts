@@ -4,11 +4,8 @@ import { v } from "convex/values";
 export const listDomainsByProject = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
-    const domains = await ctx.db
-      .query("domains")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .collect();
-    return domains;
+    const allDomains = await ctx.db.query("domains").collect();
+    return allDomains.filter((d) => d.projectId === args.projectId);
   },
 });
 
@@ -22,6 +19,7 @@ export const addDomain = mutation({
       projectId: args.projectId,
       domain: args.domain,
       status: "pending",
+      createdAt: Date.now(),
     });
     return domainId;
   },

@@ -9,51 +9,30 @@ export default defineSchema({
   }).index("by_token", ["tokenIdentifier"]),
 
   projects: defineTable({
-    userId: v.string(),
     name: v.string(),
     gitRepoUrl: v.optional(v.string()),
-    status: v.optional(v.union(
-      v.literal("created"),
-      v.literal("analyzing"),
-      v.literal("analyzed"),
-      v.literal("error")
-    )),
+    userId: v.optional(v.string()), // For backward compatibility
     createdAt: v.number(),
-  }).index("by_user", ["userId"]),
+    status: v.optional(v.string()), // "new" | "analyzing" | "analyzed" | "error"
+  }),
 
   deployments: defineTable({
     projectId: v.id("projects"),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("running"),
-      v.literal("success"),
-      v.literal("failed")
-    ),
     provider: v.string(),
+    status: v.string(), // "pending" | "running" | "success" | "failed"
     createdAt: v.number(),
-  }).index("by_project", ["projectId"]),
+  }),
 
   domains: defineTable({
     projectId: v.id("projects"),
     domain: v.string(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("verifying"),
-      v.literal("active"),
-      v.literal("error")
-    ),
-  }).index("by_project", ["projectId"]),
+    status: v.string(), // "pending" | "verifying" | "active" | "error"
+    createdAt: v.number(),
+  }),
 
   manifests: defineTable({
     projectId: v.id("projects"),
-    framework: v.string(),
-    frontend: v.boolean(),
-    backend: v.boolean(),
-    buildCommand: v.string(),
-    startCommand: v.string(),
-    envVars: v.array(v.string()),
-    recommendedProvider: v.string(),
-    notes: v.string(),
+    manifest: v.any(),
     createdAt: v.number(),
-  }).index("by_project", ["projectId"]),
+  }),
 });

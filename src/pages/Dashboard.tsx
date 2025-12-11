@@ -6,11 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { FolderGit2, Rocket, DollarSign, TrendingUp } from "lucide-react";
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const userId = user?.profile.sub || "demo";
-
-  const projects = useQuery(api.projects.listProjectsByUser, { userId });
-  const deployments = useQuery(api.deployments.listAllDeployments, { userId });
+  const projects = useQuery(api.projects.listProjectsByUser, {});
+  const deployments = useQuery(api.deployments.listAllDeployments, {});
 
   const isLoading = projects === undefined || deployments === undefined;
 
@@ -97,7 +94,7 @@ export default function Dashboard() {
             </div>
           ) : deployments && deployments.length > 0 ? (
             <div className="space-y-4">
-              {deployments.slice(0, 5).map((deployment) => (
+              {deployments.slice(0, 5).map((deployment: { _id: string; provider: string; createdAt: number; status: string }) => (
                 <div
                   key={deployment._id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

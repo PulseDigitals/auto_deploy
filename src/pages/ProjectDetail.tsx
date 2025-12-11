@@ -58,6 +58,24 @@ export default function ProjectDetail() {
     );
   }
 
+  if (!project) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-4">
+          <Link to="/dashboard/projects">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Button>
+          </Link>
+        </div>
+        <div className="text-center py-20">
+          <h1 className="text-2xl font-bold">Project not found</h1>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -162,7 +180,7 @@ export default function ProjectDetail() {
               <Skeleton className="h-20 w-full" />
             ) : domains.length > 0 ? (
               <div className="space-y-2">
-                {domains.map((domain) => (
+                {domains.map((domain: { _id: string; domain: string; status: string }) => (
                   <div
                     key={domain._id}
                     className="flex items-center justify-between p-2 bg-muted/50 rounded"
@@ -192,20 +210,7 @@ export default function ProjectDetail() {
           </CardHeader>
           <CardContent>
             <pre className="bg-slate-900 p-4 rounded-lg overflow-auto text-slate-300 text-sm max-h-96">
-              {JSON.stringify(
-                {
-                  framework: manifest.framework,
-                  frontend: manifest.frontend,
-                  backend: manifest.backend,
-                  buildCommand: manifest.buildCommand,
-                  startCommand: manifest.startCommand,
-                  envVars: manifest.envVars,
-                  recommendedProvider: manifest.recommendedProvider,
-                  notes: manifest.notes,
-                },
-                null,
-                2
-              )}
+              {JSON.stringify(manifest.manifest, null, 2)}
             </pre>
           </CardContent>
         </Card>
@@ -225,7 +230,7 @@ export default function ProjectDetail() {
             </div>
           ) : deployments.length > 0 ? (
             <div className="space-y-3">
-              {deployments.map((deployment) => (
+              {deployments.map((deployment: { _id: string; provider: string; createdAt: number; status: string }) => (
                 <div
                   key={deployment._id}
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"

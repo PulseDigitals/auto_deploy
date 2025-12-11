@@ -14,11 +14,9 @@ import {
 } from "@/components/ui/dialog.tsx";
 
 export default function Projects() {
-  const { user } = useAuth();
-  const userId = user?.profile.sub || "demo";
   const [showNewProject, setShowNewProject] = useState(false);
 
-  const projects = useQuery(api.projects.listProjectsByUser, { userId });
+  const projects = useQuery(api.projects.listProjectsByUser, {});
 
   return (
     <div className="space-y-6">
@@ -42,10 +40,7 @@ export default function Projects() {
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
           </DialogHeader>
-          <NewProjectForm
-            userId={userId}
-            onSuccess={() => setShowNewProject(false)}
-          />
+          <NewProjectForm onSuccess={() => setShowNewProject(false)} />
         </DialogContent>
       </Dialog>
     </div>

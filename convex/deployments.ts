@@ -4,38 +4,21 @@ import { v } from "convex/values";
 export const listDeploymentsByProject = query({
   args: { projectId: v.id("projects") },
   handler: async (ctx, args) => {
-    const deployments = await ctx.db
-      .query("deployments")
-      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
-      .order("desc")
-      .collect();
-    return deployments;
+    const allDeployments = await ctx.db.query("deployments").collect();
+    return allDeployments
+      .filter((d) => d.projectId === args.projectId)
+      .sort((a, b) => b.createdAt - a.createdAt);
   },
 });
 
 export const listAllDeployments = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    // Get all projects for this user
-    const projects = await ctx.db
-      .query("projects")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+  args: {},
+  handler: async (ctx) => {
+    // Get all deployments
+    const allDeployments = await ctx.db
+      .query("deployments")
+      .order("desc")
       .collect();
-
-    const projectIds = projects.map((p) => p._id);
-
-    // Get all deployments for these projects
-    const allDeployments = [];
-    for (const projectId of projectIds) {
-      const deployments = await ctx.db
-        .query("deployments")
-        .withIndex("by_project", (q) => q.eq("projectId", projectId))
-        .collect();
-      allDeployments.push(...deployments);
-    }
-
-    // Sort by creation time descending
-    allDeployments.sort((a, b) => b.createdAt - a.createdAt);
 
     return allDeployments;
   },

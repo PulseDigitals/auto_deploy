@@ -2,14 +2,31 @@
 
 import { v } from "convex/values";
 import { action } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { api } from "./_generated/api";
 import { ConvexError } from "convex/values";
 
-export const analyzeCodebase = action({
+interface ManifestType {
+  framework: string;
+  frontend: boolean;
+  backend: boolean;
+  buildCommand: string;
+  startCommand: string;
+  envVars: string[];
+  recommendedProvider: string;
+  notes: string;
+}
+
+export const analyzeCodebase: ReturnType<typeof action> = action({
   args: { projectId: v.id("projects") },
-  handler: async (ctx, { projectId }) => {
-    // Get project
-    const project = await ctx.runQuery(internal.projects.getProjectInternal, {
+  handler: async (ctx, { projectId }): Promise<ManifestType> => {
+    // Fetch project
+    const project: {
+      _id: string;
+      name: string;
+      gitRepoUrl?: string | null;
+      createdAt: number;
+      status?: string | null;
+    } | null = await ctx.runQuery(api.projects.getProjectInternal, {
       projectId,
     });
 
@@ -17,15 +34,15 @@ export const analyzeCodebase = action({
       throw new ConvexError({ message: "Project not found", code: "NOT_FOUND" });
     }
 
-    // Set status → analyzing
-    await ctx.runMutation(internal.projects.updateProjectStatus, {
+    // Update status → analyzing
+    await ctx.runMutation(api.projects.updateProjectStatus, {
       projectId,
       status: "analyzing",
     });
 
     try {
-      // ---- STUBBED MANIFEST (no external AI yet) ----
-      const manifest = {
+      // Stubbed manifest (no real AI yet)
+      const manifest: ManifestType = {
         framework: "React + Vite",
         frontend: true,
         backend: true,
@@ -35,16 +52,15 @@ export const analyzeCodebase = action({
         recommendedProvider: "Vercel",
         notes: `Stubbed manifest for project "${project.name}". Replace with real AI analysis later.`,
       };
-      // ----------------------------------------------
 
       // Save manifest
-      await ctx.runMutation(internal.manifests.createManifest, {
+      await ctx.runMutation(api.manifests.createManifest, {
         projectId,
         manifest,
       });
 
-      // Set status → analyzed
-      await ctx.runMutation(internal.projects.updateProjectStatus, {
+      // Update status → analyzed
+      await ctx.runMutation(api.projects.updateProjectStatus, {
         projectId,
         status: "analyzed",
       });
@@ -52,7 +68,7 @@ export const analyzeCodebase = action({
       return manifest;
     } catch (err) {
       // On failure mark status → error
-      await ctx.runMutation(internal.projects.updateProjectStatus, {
+      await ctx.runMutation(api.projects.updateProjectStatus, {
         projectId,
         status: "error",
       });

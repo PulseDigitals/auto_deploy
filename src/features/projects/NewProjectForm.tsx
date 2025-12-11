@@ -8,14 +8,10 @@ import { toast } from "sonner";
 import { Upload, Loader2 } from "lucide-react";
 
 interface NewProjectFormProps {
-  userId: string;
   onSuccess: () => void;
 }
 
-export default function NewProjectForm({
-  userId,
-  onSuccess,
-}: NewProjectFormProps) {
+export default function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   const [name, setName] = useState("");
   const [gitRepoUrl, setGitRepoUrl] = useState("");
   const [zipFile, setZipFile] = useState<File | null>(null);
@@ -37,7 +33,6 @@ export default function NewProjectForm({
     try {
       // Create the project
       const projectId = await createProject({
-        userId,
         name: name.trim(),
         gitRepoUrl: gitRepoUrl.trim() || undefined,
       });

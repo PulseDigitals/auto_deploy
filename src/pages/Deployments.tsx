@@ -4,10 +4,7 @@ import { useAuth } from "@/hooks/use-auth.ts";
 import DeploymentList from "@/features/deployments/DeploymentList.tsx";
 
 export default function Deployments() {
-  const { user } = useAuth();
-  const userId = user?.profile.sub || "demo";
-
-  const deployments = useQuery(api.deployments.listAllDeployments, { userId });
+  const deployments = useQuery(api.deployments.listAllDeployments, {});
 
   return (
     <div className="space-y-6">
