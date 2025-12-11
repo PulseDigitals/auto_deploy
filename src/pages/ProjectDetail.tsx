@@ -8,12 +8,16 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import ProviderSelector from "@/components/ProviderSelector.tsx";
+import ProviderInstructions from "@/components/ProviderInstructions.tsx";
+import type { ProviderId } from "@/config/providers.ts";
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
   const projectId = id as Id<"projects">;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
 
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
@@ -29,10 +33,9 @@ export default function ProjectDetail() {
     if (!project) return;
     try {
       setIsDeploying(true);
-      // For MVP, always use "Vercel" as provider
       await createDeployment({
         projectId,
-        provider: "Vercel",
+        providerId: selectedProvider,
       });
       toast.success("Deployment initiated!");
     } catch (error) {
@@ -93,27 +96,50 @@ export default function ProjectDetail() {
         </Link>
       </div>
 
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{project.name}</h1>
-          {project.gitRepoUrl && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
-              <GitBranch className="h-4 w-4" />
-              <a
-                href={project.gitRepoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:underline"
-              >
-                {project.gitRepoUrl}
-              </a>
-            </div>
-          )}
+      <div>
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold">{project.name}</h1>
+            {project.gitRepoUrl && (
+              <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                <GitBranch className="h-4 w-4" />
+                <a
+                  href={project.gitRepoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                >
+                  {project.gitRepoUrl}
+                </a>
+              </div>
+            )}
+          </div>
         </div>
-        <Button onClick={handleDeploy} disabled={isDeploying} className="gap-2">
-          <Rocket className="h-4 w-4" />
-          {isDeploying ? "Deploying..." : "Deploy Now"}
-        </Button>
+
+        {/* Provider Selection */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5" />
+              Deploy Project
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ProviderSelector
+              value={selectedProvider}
+              onChange={setSelectedProvider}
+            />
+            <Button 
+              onClick={handleDeploy} 
+              disabled={isDeploying} 
+              className="w-full gap-2"
+            >
+              <Rocket className="h-4 w-4" />
+              {isDeploying ? "Deploying..." : "Deploy Now"}
+            </Button>
+            <ProviderInstructions providerId={selectedProvider} />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -239,29 +265,38 @@ export default function ProjectDetail() {
               {deployments.map((deployment: { _id: string; provider: string; createdAt: number; status: string }) => (
                 <div
                   key={deployment._id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  className="flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
                 >
                   <div>
-                    <p className="text-sm font-medium">
-                      {deployment.provider}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
+                    <div className="text-sm font-medium">
+                      {deployment.provider} deployment
+                    </div>
+                    <div className="text-xs text-slate-400">
                       {new Date(deployment.createdAt).toLocaleString()}
-                    </p>
+                    </div>
                   </div>
-                  <span
-                    className={`text-xs px-2 py-1 rounded-full ${
-                      deployment.status === "success"
-                        ? "bg-green-500/10 text-green-400"
-                        : deployment.status === "failed"
-                          ? "bg-red-500/10 text-red-400"
+
+                  <div className="flex items-center gap-2">
+                    {/* Provider pill */}
+                    <span className="px-2 py-1 text-[10px] rounded-full bg-slate-800 text-slate-200">
+                      {deployment.provider}
+                    </span>
+
+                    {/* Status pill */}
+                    <span
+                      className={`px-2 py-1 text-[10px] rounded-full ${
+                        deployment.status === "success"
+                          ? "bg-green-500/20 text-green-300"
+                          : deployment.status === "failed"
+                          ? "bg-red-500/20 text-red-300"
                           : deployment.status === "running"
-                            ? "bg-blue-500/10 text-blue-400"
-                            : "bg-yellow-500/10 text-yellow-400"
-                    }`}
-                  >
-                    {deployment.status}
-                  </span>
+                          ? "bg-blue-500/20 text-blue-300"
+                          : "bg-yellow-500/20 text-yellow-300"
+                      }`}
+                    >
+                      {deployment.status}
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

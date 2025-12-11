@@ -22,6 +22,25 @@ export default function Deployments() {
                   {new Date(d.createdAt).toLocaleString()}
                 </div>
               </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-1 text-[10px] rounded-full bg-slate-800 text-slate-200">
+                  {d.provider}
+                </span>
+                <span
+                  className={`px-2 py-1 text-[10px] rounded-full ${
+                    d.status === "success"
+                      ? "bg-green-500/20 text-green-300"
+                      : d.status === "failed"
+                      ? "bg-red-500/20 text-red-300"
+                      : d.status === "running"
+                      ? "bg-blue-500/20 text-blue-300"
+                      : "bg-yellow-500/20 text-yellow-300"
+                  }`}
+                >
+                  {d.status}
+                </span>
+              </div>
             </div>
           ))
         ) : (

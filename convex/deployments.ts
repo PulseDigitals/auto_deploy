@@ -27,19 +27,35 @@ export const listAllDeployments = query({
 export const createDeployment = mutation({
   args: {
     projectId: v.id("projects"),
-    provider: v.string(), // e.g. "Vercel", "Netlify", "Render"
+    providerId: v.string(), // "vercel" | "netlify" | "render" | "railway" | "aws"
   },
-  handler: async (ctx, { projectId, provider }) => {
+  handler: async (ctx, { projectId, providerId }) => {
+    // Map providerId -> provider name (simple mapping for backend safety)
+    const providerNameMap: Record<string, string> = {
+      vercel: "Vercel",
+      netlify: "Netlify",
+      render: "Render",
+      railway: "Railway",
+      aws: "AWS",
+    };
+
+    const provider = providerNameMap[providerId] || "Custom";
+
     const now = Date.now();
-    const id = await ctx.db.insert("deployments", {
+
+    const deploymentId = await ctx.db.insert("deployments", {
       projectId,
       provider,
+      providerId,
+      targetEnvironment: "production",
+      url: undefined,
       status: "pending",
       createdAt: now,
       updatedAt: now,
       logs: [],
     });
-    return id;
+
+    return deploymentId;
   },
 });
 

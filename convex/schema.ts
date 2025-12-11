@@ -18,10 +18,13 @@ export default defineSchema({
 
   deployments: defineTable({
     projectId: v.id("projects"),
-    provider: v.string(),
-    status: v.string(), // "pending" | "running" | "success" | "failed"
+    provider: v.string(), // Human-readable name e.g. "Vercel"
+    providerId: v.optional(v.string()), // "vercel" | "netlify" | "render" | "railway" | "aws"
+    targetEnvironment: v.optional(v.string()), // e.g. "production"
+    url: v.optional(v.string()), // placeholder deployment URL
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
+    status: v.string(), // "pending" | "running" | "success" | "failed"
     logs: v.optional(v.array(v.string())),
   }).index("by_projectId", ["projectId"]),
 
