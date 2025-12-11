@@ -9,6 +9,14 @@ import { ConvexError } from "convex/values";
 export const analyzeCodebase = action({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
+    // Check if OpenAI API key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      throw new ConvexError({
+        message: "OpenAI API key not configured. Please add OPENAI_API_KEY to your Convex secrets.",
+        code: "BAD_REQUEST",
+      });
+    }
+
     // Fetch the project record
     const project = await ctx.runQuery(internal.projects.getProjectInternal, {
       projectId,
