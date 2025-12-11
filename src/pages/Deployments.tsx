@@ -1,8 +1,19 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import { useState } from "react";
+import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
+
+type Deployment = {
+  _id: string;
+  provider: string;
+  status: string;
+  createdAt: number;
+  logs?: string[];
+};
 
 export default function Deployments() {
   const deployments = useQuery(api.deployments.listAllDeployments, {});
+  const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
 
   return (
     <div>
@@ -12,7 +23,8 @@ export default function Deployments() {
           deployments.map((d) => (
             <div
               key={d._id}
-              className="flex items-center justify-between bg-slate-900 rounded-lg px-4 py-3"
+              onClick={() => setSelectedDeployment(d as Deployment)}
+              className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between bg-slate-900 rounded-lg px-4 py-3"
             >
               <div>
                 <div className="text-sm font-medium">
@@ -49,6 +61,13 @@ export default function Deployments() {
           </p>
         )}
       </div>
+
+      {selectedDeployment && (
+        <DeploymentLogModal
+          deployment={selectedDeployment}
+          onClose={() => setSelectedDeployment(null)}
+        />
+      )}
     </div>
   );
 }

@@ -69,6 +69,24 @@ export const updateDeploymentStatus = mutation({
   },
 });
 
+// Internal mutation for appending logs (called by scheduler)
+export const appendLog = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+    message: v.string(),
+  },
+  handler: async (ctx, { deploymentId, message }) => {
+    const d = await ctx.db.get(deploymentId);
+    if (!d) return;
+
+    const newMessage = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+    await ctx.db.patch(deploymentId, {
+      logs: [...(d.logs || []), newMessage],
+    });
+  },
+});
+
 // Internal mutation for scheduler to update deployment status and logs
 export const updateStatus = internalMutation({
   args: {

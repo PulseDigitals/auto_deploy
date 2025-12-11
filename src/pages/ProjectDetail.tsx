@@ -10,7 +10,16 @@ import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
 import ProviderInstructions from "@/components/ProviderInstructions.tsx";
+import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 import type { ProviderId } from "@/config/providers.ts";
+
+type Deployment = {
+  _id: string;
+  provider: string;
+  status: string;
+  createdAt: number;
+  logs?: string[];
+};
 
 export default function ProjectDetail() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +27,7 @@ export default function ProjectDetail() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
+  const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
 
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
@@ -262,10 +272,11 @@ export default function ProjectDetail() {
             </div>
           ) : deployments.length > 0 ? (
             <div className="space-y-3">
-              {deployments.map((deployment: { _id: string; provider: string; createdAt: number; status: string }) => (
+              {deployments.map((deployment: { _id: string; provider: string; createdAt: number; status: string; logs?: string[] }) => (
                 <div
                   key={deployment._id}
-                  className="flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
+                  onClick={() => setSelectedDeployment(deployment as Deployment)}
+                  className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
                 >
                   <div>
                     <div className="text-sm font-medium">
@@ -307,6 +318,13 @@ export default function ProjectDetail() {
           )}
         </CardContent>
       </Card>
+
+      {selectedDeployment && (
+        <DeploymentLogModal
+          deployment={selectedDeployment}
+          onClose={() => setSelectedDeployment(null)}
+        />
+      )}
     </div>
   );
 }
