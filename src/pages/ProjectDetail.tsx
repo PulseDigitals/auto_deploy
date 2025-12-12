@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
@@ -57,6 +57,21 @@ type CostDrift = {
   status: string; // "normal" | "warning" | "critical"
 };
 
+type Alerts = {
+  warningSent: boolean;
+  criticalSent: boolean;
+  lastNotifiedAt?: number;
+};
+
+type AlertHistoryItem = {
+  _id: string;
+  alertType: string;
+  channel: string;
+  status: string;
+  message: string;
+  createdAt: number;
+};
+
 type Deployment = {
   _id: string;
   provider: string;
@@ -73,6 +88,7 @@ type Deployment = {
   costBaseline?: number;
   costAlerts?: CostAlerts;
   costDrift?: CostDrift;
+  alerts?: Alerts;
 };
 
 export default function ProjectDetail() {
@@ -90,6 +106,12 @@ export default function ProjectDetail() {
   });
   const domains = useQuery(api.domains.listDomainsByProject, { projectId });
   const manifest = useQuery(api.manifests.getManifestByProject, { projectId });
+  const alertHistory = useQuery(
+    api.costGuardrailsPublic.getAlertHistory,
+    deployments && deployments.length > 0
+      ? { deploymentId: deployments[0]._id as Id<"deployments"> }
+      : "skip"
+  ) as AlertHistoryItem[] | undefined;
 
   const createDeployment = useMutation(api.deployments.createDeployment);
   const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
@@ -701,6 +723,99 @@ export default function ProjectDetail() {
                 <p className="text-xs text-muted-foreground">
                   You'll be notified when costs increase by more than this percentage
                 </p>
+              </div>
+            )}
+
+            {/* Alert Status Badges */}
+            {deployments[0].alerts && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Notification Status</div>
+                <div className="flex gap-2">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                    deployments[0].alerts.warningSent
+                      ? "bg-yellow-500/10 border-yellow-500/30"
+                      : "bg-slate-800/50 border-slate-700"
+                  }`}>
+                    <Bell className={`h-4 w-4 ${
+                      deployments[0].alerts.warningSent ? "text-yellow-400" : "text-slate-500"
+                    }`} />
+                    <span className="text-xs">
+                      Warning {deployments[0].alerts.warningSent ? "Sent" : "Not Sent"}
+                    </span>
+                  </div>
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${
+                    deployments[0].alerts.criticalSent
+                      ? "bg-red-500/10 border-red-500/30"
+                      : "bg-slate-800/50 border-slate-700"
+                  }`}>
+                    <Bell className={`h-4 w-4 ${
+                      deployments[0].alerts.criticalSent ? "text-red-400" : "text-slate-500"
+                    }`} />
+                    <span className="text-xs">
+                      Critical {deployments[0].alerts.criticalSent ? "Sent" : "Not Sent"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Alert History */}
+            {alertHistory && alertHistory.length > 0 && (
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Alert History</div>
+                <div className="space-y-2">
+                  {alertHistory.slice(0, 4).map((alert) => (
+                    <div
+                      key={alert._id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800"
+                    >
+                      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                        alert.alertType === "critical"
+                          ? "bg-red-500/20"
+                          : "bg-yellow-500/20"
+                      }`}>
+                        {alert.channel === "email" ? (
+                          <Mail className={`h-4 w-4 ${
+                            alert.alertType === "critical" ? "text-red-400" : "text-yellow-400"
+                          }`} />
+                        ) : (
+                          <MessageSquare className={`h-4 w-4 ${
+                            alert.alertType === "critical" ? "text-red-400" : "text-yellow-400"
+                          }`} />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            alert.alertType === "critical"
+                              ? "bg-red-500/20 text-red-300"
+                              : "bg-yellow-500/20 text-yellow-300"
+                          }`}>
+                            {alert.alertType.toUpperCase()}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                            {alert.channel === "email" ? "Email" : "Slack"}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${
+                            alert.status === "sent"
+                              ? "bg-green-500/20 text-green-300"
+                              : "bg-red-500/20 text-red-300"
+                          }`}>
+                            {alert.status}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {new Date(alert.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {alertHistory.length > 4 && (
+                  <div className="text-xs text-muted-foreground text-center">
+                    Showing 4 of {alertHistory.length} alerts
+                  </div>
+                )}
               </div>
             )}
 

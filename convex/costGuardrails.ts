@@ -1,5 +1,7 @@
 import { internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel.d.ts";
 
 type DriftStatus = "normal" | "warning" | "critical";
 
@@ -55,6 +57,11 @@ export const checkCostDrift = internalMutation({
       lastCheckedAt: Date.now(),
     };
 
+    const alertState = deployment.alerts || {
+      warningSent: false,
+      criticalSent: false,
+    };
+
     // Simulate cost increase for demo (in production, this would be actual usage data)
     // Use provided simulation or default to 0
     const increase = simulatedIncrease !== undefined ? simulatedIncrease : 0;
@@ -68,6 +75,35 @@ export const checkCostDrift = internalMutation({
     // Check if alert should be triggered
     const triggered = percentIncrease >= alerts.thresholdPercent;
 
+    // Evaluate and dispatch alerts
+    const newAlertState = { ...alertState };
+    
+    // Critical alert (35%+)
+    if (percentIncrease >= 35 && !alertState.criticalSent) {
+      await dispatchAlert(ctx, deploymentId, deployment.projectId, "critical", {
+        percentIncrease,
+        currentEstimate: Math.round(currentEstimate),
+        baseline,
+      });
+      newAlertState.criticalSent = true;
+      newAlertState.lastNotifiedAt = Date.now();
+    }
+    // Warning alert (20%+)
+    else if (percentIncrease >= 20 && percentIncrease < 35 && !alertState.warningSent) {
+      await dispatchAlert(ctx, deploymentId, deployment.projectId, "warning", {
+        percentIncrease,
+        currentEstimate: Math.round(currentEstimate),
+        baseline,
+      });
+      newAlertState.warningSent = true;
+      newAlertState.lastNotifiedAt = Date.now();
+    }
+    // Reset alerts if costs go back to normal
+    else if (percentIncrease < 20) {
+      newAlertState.warningSent = false;
+      newAlertState.criticalSent = false;
+    }
+
     await ctx.db.patch(deploymentId, {
       costDrift: {
         currentEstimate: Math.round(currentEstimate),
@@ -79,6 +115,7 @@ export const checkCostDrift = internalMutation({
         triggered,
         lastCheckedAt: Date.now(),
       },
+      alerts: newAlertState,
     });
   },
 });
@@ -111,4 +148,69 @@ function categorizeDrift(percentIncrease: number): DriftStatus {
   if (percentIncrease < 15) return "normal";
   if (percentIncrease < 30) return "warning";
   return "critical";
+}
+
+/**
+ * Dispatch alert notifications (MVP: simulated)
+ */
+async function dispatchAlert(
+  ctx: MutationCtx,
+  deploymentId: Id<"deployments">,
+  projectId: Id<"projects">,
+  alertType: "warning" | "critical",
+  payload: {
+    percentIncrease: number;
+    currentEstimate: number;
+    baseline: number;
+  }
+): Promise<void> {
+  const now = Date.now();
+
+  // Generate alert message
+  const message = generateAlertMessage(alertType, payload);
+
+  // Simulate email alert
+  console.log(`📧 [EMAIL ALERT - ${alertType.toUpperCase()}]`, message);
+  await ctx.db.insert("alertHistory", {
+    deploymentId,
+    projectId,
+    alertType,
+    channel: "email",
+    status: "sent",
+    message,
+    createdAt: now,
+  });
+
+  // Simulate Slack alert
+  console.log(`💬 [SLACK ALERT - ${alertType.toUpperCase()}]`, message);
+  await ctx.db.insert("alertHistory", {
+    deploymentId,
+    projectId,
+    alertType,
+    channel: "slack",
+    status: "sent",
+    message,
+    createdAt: now,
+  });
+}
+
+/**
+ * Generate alert message
+ */
+function generateAlertMessage(
+  alertType: "warning" | "critical",
+  payload: { percentIncrease: number; currentEstimate: number; baseline: number }
+): string {
+  const { percentIncrease, currentEstimate, baseline } = payload;
+  const icon = alertType === "critical" ? "🚨" : "⚠️";
+  
+  return `${icon} Cost Alert (${alertType.toUpperCase()})
+Current cost: $${currentEstimate}/mo (+${Math.round(percentIncrease)}%)
+Baseline: $${baseline}/mo
+Status: ${alertType.toUpperCase()}
+
+Recommended action:
+• Review provider choice
+• Consider cost optimization
+• View deployment details for recommendations`;
 }

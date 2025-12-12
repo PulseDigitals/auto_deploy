@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -32,5 +32,21 @@ export const updateAlertThreshold = mutation({
       deploymentId,
       thresholdPercent,
     });
+  },
+});
+
+/**
+ * Get alert history for a deployment
+ */
+export const getAlertHistory = query({
+  args: {
+    deploymentId: v.id("deployments"),
+  },
+  handler: async (ctx, { deploymentId }) => {
+    return await ctx.db
+      .query("alertHistory")
+      .withIndex("by_deployment", (q) => q.eq("deploymentId", deploymentId))
+      .order("desc")
+      .collect();
   },
 });

@@ -80,7 +80,24 @@ export default defineSchema({
         status: v.string(), // "normal" | "warning" | "critical"
       })
     ),
+    alerts: v.optional(
+      v.object({
+        warningSent: v.boolean(),
+        criticalSent: v.boolean(),
+        lastNotifiedAt: v.optional(v.number()),
+      })
+    ),
   }).index("by_projectId", ["projectId"]),
+
+  alertHistory: defineTable({
+    deploymentId: v.id("deployments"),
+    projectId: v.id("projects"),
+    alertType: v.string(), // "warning" | "critical"
+    channel: v.string(), // "email" | "slack"
+    status: v.string(), // "sent" | "failed"
+    message: v.string(),
+    createdAt: v.number(),
+  }).index("by_deployment", ["deploymentId"]),
 
   domains: defineTable({
     projectId: v.id("projects"),
