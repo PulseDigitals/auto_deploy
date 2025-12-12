@@ -1,34 +1,54 @@
 import { useAuth } from "@/hooks/use-auth.ts";
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { User, Key, Bell, Shield, Link2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 export default function Settings() {
   const { user } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const connections = useQuery(api.providerAuthHelpers.getUserConnections, {});
   const disconnectProvider = useMutation(api.providerAuthHelpers.disconnectProvider);
-  const connectVercel = useAction(api.providerAuthPublic.connectVercel);
   
   const vercelConnection = connections?.find((c) => c.provider === "vercel");
   
-  const handleConnectVercel = async () => {
-    try {
-      setIsConnecting(true);
-      const result = await connectVercel({});
-      
-      // Redirect to Vercel OAuth page
-      window.location.href = result.authUrl;
-    } catch (error) {
-      toast.error("Failed to initiate connection");
-      console.error(error);
-      setIsConnecting(false);
+  // Handle OAuth callback success/error messages
+  useEffect(() => {
+    const connected = searchParams.get("connected");
+    const error = searchParams.get("error");
+    
+    if (connected === "vercel") {
+      toast.success("Successfully connected to Vercel!");
+      // Clear URL parameters
+      setSearchParams({});
     }
+    
+    if (error) {
+      const errorMessages: Record<string, string> = {
+        missing_code: "Authorization code missing",
+        config_missing: "OAuth configuration not set up",
+        token_exchange_failed: "Failed to exchange authorization code",
+        no_access_token: "No access token received",
+        user_fetch_failed: "Failed to fetch user information",
+        unknown: "An unknown error occurred",
+      };
+      toast.error(errorMessages[error] || "Failed to connect provider");
+      // Clear URL parameters
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
+  
+  const handleConnectVercel = () => {
+    // CRITICAL: OAuth must be initiated via HTTP redirect, NOT Convex action
+    // This redirects to /api/oauth/vercel/start which is handled by HTTP router
+    setIsConnecting(true);
+    window.location.href = "/api/oauth/vercel/start";
   };
   
   const handleDisconnect = async (provider: string) => {
