@@ -183,13 +183,26 @@ export const startDeploymentPipeline = internalMutation({
     const deployment = await ctx.db.get(deploymentId);
     if (!deployment) return;
 
+    const isLiveMode = deployment.deploymentMode === "live";
+    const isVercel = deployment.providerId === "vercel";
+
+    // LIVE DEPLOYMENT PATH (Vercel only for now)
+    if (isLiveMode && isVercel) {
+      // Trigger live Vercel deployment
+      await ctx.scheduler.runAfter(500, internal.vercel.liveDeployment.executeLiveDeployment, {
+        deploymentId,
+      });
+      return;
+    }
+
+    // SIMULATION DEPLOYMENT PATH (Default)
     // Determine success (90% success rate)
     const success = Math.random() > 0.1;
 
     // Step 1: Initial log
     await ctx.scheduler.runAfter(1000, internal.deployments.appendLog, {
       deploymentId,
-      message: "Starting deployment…",
+      message: "Starting deployment simulation…",
     });
 
     // Step 2: Transition to running
@@ -248,14 +261,11 @@ export const startDeploymentPipeline = internalMutation({
     }
 
     // Step 10: Final status transition
-    const isSimulation = deployment.deploymentMode === "simulation";
     await ctx.scheduler.runAfter(9000, internal.deployments.updateStatus, {
       deploymentId,
       status: success ? "success" : "failed",
       log: success
-        ? isSimulation
-          ? "Deployment Simulation Successful"
-          : "Live Deployment Scheduled (Provider authorization required)"
+        ? "🟡 Deployment Simulation Successful"
         : "Deployment failed during execution.",
     });
   },

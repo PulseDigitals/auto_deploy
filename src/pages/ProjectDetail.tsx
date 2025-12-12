@@ -113,6 +113,9 @@ type Deployment = {
   status: string;
   createdAt: number;
   logs?: string[];
+  productionUrl?: string; // Real production URL from provider (for live deployments)
+  vercelProjectId?: string; // Real Vercel project ID (for live deployments)
+  vercelDeploymentId?: string; // Real Vercel deployment ID (for live deployments)
   artifacts?: Artifact[];
   buildTime?: number;
   previewUrl?: string;
@@ -1412,13 +1415,27 @@ export default function ProjectDetail() {
                   onClick={() => setSelectedDeployment(deployment)}
                   className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
                 >
-                  <div>
+                  <div className="flex-1">
                     <div className="text-sm font-medium">
                       {deployment.provider} deployment
                     </div>
                     <div className="text-xs text-slate-400">
                       {new Date(deployment.createdAt).toLocaleString()}
                     </div>
+                    {/* Production URL for live deployments */}
+                    {deployment.productionUrl && deployment.deploymentMode === "live" && deployment.status === "success" && (
+                      <a
+                        href={deployment.productionUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mt-1"
+                      >
+                        <Globe className="h-3 w-3" />
+                        {deployment.productionUrl}
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">

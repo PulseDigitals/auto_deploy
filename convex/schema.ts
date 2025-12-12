@@ -30,6 +30,9 @@ export default defineSchema({
     deploymentMode: v.optional(v.union(v.literal("simulation"), v.literal("live"))), // "simulation" | "live" (optional for backward compatibility)
     targetEnvironment: v.optional(v.string()), // e.g. "production"
     url: v.optional(v.string()), // placeholder deployment URL
+    productionUrl: v.optional(v.string()), // Real production URL from provider (for live deployments)
+    vercelProjectId: v.optional(v.string()), // Real Vercel project ID (for live deployments)
+    vercelDeploymentId: v.optional(v.string()), // Real Vercel deployment ID (for live deployments)
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
     status: v.string(), // "pending" | "running" | "success" | "failed"
