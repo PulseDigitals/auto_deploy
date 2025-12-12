@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
@@ -14,6 +14,7 @@ import ProviderInstructions from "@/components/ProviderInstructions.tsx";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 import ArtifactExplorer from "@/components/ArtifactExplorer.tsx";
 import type { ProviderId } from "@/config/providers.ts";
+import { getProviderConfig } from "@/config/providers.ts";
 
 type Artifact = {
   path: string;
@@ -22,15 +23,32 @@ type Artifact = {
   size?: number;
 };
 
+type CostEstimate = {
+  monthlyTotal: number;
+  compute: number;
+  bandwidth: number;
+  storage: number;
+  currency: string;
+  assumptions: string;
+};
+
+type CostComparison = {
+  provider: string;
+  monthlyCost: number;
+};
+
 type Deployment = {
   _id: string;
   provider: string;
+  providerId?: string;
   status: string;
   createdAt: number;
   logs?: string[];
   artifacts?: Artifact[];
   buildTime?: number;
   previewUrl?: string;
+  estimatedCost?: CostEstimate;
+  costComparison?: CostComparison[];
 };
 
 export default function ProjectDetail() {
@@ -365,6 +383,170 @@ export default function ProjectDetail() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Cost Estimation */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].estimatedCost && (
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Cost Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-400" />
+                Estimated Monthly Cost
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="text-3xl font-bold">
+                  ${deployments[0].estimatedCost.monthlyTotal}
+                  <span className="text-sm text-muted-foreground font-normal"> / month</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {deployments[0].estimatedCost.assumptions}
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {/* Compute Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Compute</span>
+                    <span className="font-semibold">${deployments[0].estimatedCost.compute}</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-blue-500"
+                      style={{
+                        width: `${(deployments[0].estimatedCost.compute / deployments[0].estimatedCost.monthlyTotal) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Bandwidth Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Bandwidth</span>
+                    <span className="font-semibold">${deployments[0].estimatedCost.bandwidth}</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-purple-500"
+                      style={{
+                        width: `${(deployments[0].estimatedCost.bandwidth / deployments[0].estimatedCost.monthlyTotal) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Storage Bar */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Storage</span>
+                    <span className="font-semibold">${deployments[0].estimatedCost.storage}</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-green-500"
+                      style={{
+                        width: `${(deployments[0].estimatedCost.storage / deployments[0].estimatedCost.monthlyTotal) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800">
+                <p className="text-xs text-muted-foreground">
+                  Costs shown are estimates, not bills. You can change providers anytime.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Provider Comparison & Savings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingDown className="h-5 w-5 text-green-400" />
+                Cost Comparison
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Provider Comparison Table */}
+              {deployments[0].costComparison && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium mb-3">Provider Cost Comparison</div>
+                  <div className="space-y-2">
+                    {deployments[0].costComparison.map((item, index) => {
+                      const isCheapest = index === 0;
+                      const isSelected = item.provider === deployments[0].providerId;
+                      const providerConfig = getProviderConfig(item.provider);
+                      
+                      return (
+                        <div
+                          key={item.provider}
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            isSelected ? "bg-slate-800 border border-slate-700" : "bg-slate-900/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm capitalize">
+                              {providerConfig?.name || item.provider}
+                            </span>
+                            {isCheapest && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-300">
+                                Cheapest
+                              </span>
+                            )}
+                            {isSelected && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-sm font-semibold">${item.monthlyCost}/mo</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Savings Section */}
+              <div className="pt-4 border-t border-slate-800 space-y-3">
+                <div className="text-sm font-medium">Cost Savings vs Vibe Platforms</div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-muted-foreground">vs Replit Teams</div>
+                      <div className="text-lg font-bold text-green-400">
+                        ${80 - deployments[0].estimatedCost.monthlyTotal}/mo saved
+                      </div>
+                    </div>
+                    <div className="text-2xl">📉</div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                    <div className="space-y-0.5">
+                      <div className="text-xs text-muted-foreground">vs Hercules Pro</div>
+                      <div className="text-lg font-bold text-green-400">
+                        ${75 - deployments[0].estimatedCost.monthlyTotal}/mo saved
+                      </div>
+                    </div>
+                    <div className="text-2xl">📊</div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-muted-foreground pt-2">
+                  Designed to help you choose the most cost-effective provider for your needs.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* Deployment Artifacts */}

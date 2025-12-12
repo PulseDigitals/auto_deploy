@@ -38,6 +38,24 @@ export default defineSchema({
     ),
     buildTime: v.optional(v.number()), // in seconds
     previewUrl: v.optional(v.string()),
+    estimatedCost: v.optional(
+      v.object({
+        monthlyTotal: v.number(),
+        compute: v.number(),
+        bandwidth: v.number(),
+        storage: v.number(),
+        currency: v.string(), // "USD"
+        assumptions: v.string(),
+      })
+    ),
+    costComparison: v.optional(
+      v.array(
+        v.object({
+          provider: v.string(),
+          monthlyCost: v.number(),
+        })
+      )
+    ),
   }).index("by_projectId", ["projectId"]),
 
   domains: defineTable({

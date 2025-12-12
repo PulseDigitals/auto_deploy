@@ -50,6 +50,11 @@ export const tick = internalMutation({
           await ctx.scheduler.runAfter(5000, internal.deployments.generateArtifacts, {
             deploymentId: d._id,
           });
+
+          // Generate cost estimate after artifacts
+          await ctx.scheduler.runAfter(5500, internal.costEstimation.generateCostEstimate, {
+            deploymentId: d._id,
+          });
         }
 
         // Final status transition with completion log
