@@ -56,6 +56,15 @@ export default defineSchema({
         })
       )
     ),
+    costAdvisor: v.optional(
+      v.object({
+        recommendation: v.string(), // "Switch Provider" | "Stay on Current Provider" | "Optimize Configuration"
+        recommendedProvider: v.string(),
+        monthlySavings: v.number(),
+        reasoning: v.array(v.string()),
+        confidenceScore: v.number(), // 0-100
+      })
+    ),
   }).index("by_projectId", ["projectId"]),
 
   domains: defineTable({

@@ -222,6 +222,11 @@ export const startDeploymentPipeline = internalMutation({
       await ctx.scheduler.runAfter(6500, internal.costEstimation.generateCostEstimate, {
         deploymentId,
       });
+
+      // Step 6: Generate cost optimization advice after cost estimate
+      await ctx.scheduler.runAfter(7000, internal.costOptimization.generateOptimizationAdvice, {
+        deploymentId,
+      });
     }
 
     // Step 6: Final status transition

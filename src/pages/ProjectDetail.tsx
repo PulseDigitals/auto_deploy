@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
@@ -37,6 +37,14 @@ type CostComparison = {
   monthlyCost: number;
 };
 
+type CostAdvisor = {
+  recommendation: string;
+  recommendedProvider: string;
+  monthlySavings: number;
+  reasoning: string[];
+  confidenceScore: number;
+};
+
 type Deployment = {
   _id: string;
   provider: string;
@@ -49,6 +57,7 @@ type Deployment = {
   previewUrl?: string;
   estimatedCost?: CostEstimate;
   costComparison?: CostComparison[];
+  costAdvisor?: CostAdvisor;
 };
 
 export default function ProjectDetail() {
@@ -400,6 +409,8 @@ export default function ProjectDetail() {
                   estimatedCost: deployments[0].estimatedCost,
                   hasCostComparison: !!deployments[0].costComparison,
                   costComparison: deployments[0].costComparison,
+                  hasCostAdvisor: !!deployments[0].costAdvisor,
+                  costAdvisor: deployments[0].costAdvisor,
                 },
                 null,
                 2
@@ -571,6 +582,97 @@ export default function ProjectDetail() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Cost Optimization Advisor */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].costAdvisor && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-blue-400" />
+              AI Cost Optimization Advisor
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Recommendation Headline */}
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                {deployments[0].costAdvisor.recommendation === "Switch Provider" ? (
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <TrendingDown className="h-5 w-5 text-green-400" />
+                  </div>
+                ) : (
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-blue-400" />
+                  </div>
+                )}
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">
+                    {deployments[0].costAdvisor.recommendation === "Switch Provider"
+                      ? `We recommend switching to ${getProviderConfig(deployments[0].costAdvisor.recommendedProvider)?.name || deployments[0].costAdvisor.recommendedProvider}`
+                      : "Your current provider is optimal"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Based on your deployment profile and cost analysis
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Savings Highlight */}
+            {deployments[0].costAdvisor.monthlySavings > 0 && (
+              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Potential Monthly Savings</div>
+                    <div className="text-2xl font-bold text-green-400">
+                      ${deployments[0].costAdvisor.monthlySavings}/month
+                    </div>
+                    <div className="text-xs text-green-300 mt-1">
+                      ${deployments[0].costAdvisor.monthlySavings * 12}/year
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">Confidence</div>
+                    <div className="text-xl font-semibold">
+                      {deployments[0].costAdvisor.confidenceScore}%
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Confidence Badge (when no savings) */}
+            {deployments[0].costAdvisor.monthlySavings === 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Confidence:</span>
+                <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm font-medium">
+                  {deployments[0].costAdvisor.confidenceScore}%
+                </span>
+              </div>
+            )}
+
+            {/* Reasoning */}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Why this recommendation?</div>
+              <ul className="space-y-2">
+                {deployments[0].costAdvisor.reasoning.map((reason, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5" />
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Footer Note */}
+            <div className="pt-3 border-t border-slate-800">
+              <p className="text-xs text-muted-foreground">
+                This recommendation is based on typical usage patterns. Your actual costs may vary based on traffic and resource usage.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Deployment Artifacts */}
