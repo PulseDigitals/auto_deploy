@@ -385,6 +385,30 @@ export default function ProjectDetail() {
         </Card>
       )}
 
+      {/* Debug View - Temporary */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && (
+        <Card className="border-dashed border-yellow-500/30 bg-yellow-500/5">
+          <CardHeader>
+            <CardTitle className="text-sm text-yellow-400">Debug: Deployment Data</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <pre className="text-xs opacity-70 overflow-auto max-h-48">
+              {JSON.stringify(
+                {
+                  status: deployments[0].status,
+                  hasEstimatedCost: !!deployments[0].estimatedCost,
+                  estimatedCost: deployments[0].estimatedCost,
+                  hasCostComparison: !!deployments[0].costComparison,
+                  costComparison: deployments[0].costComparison,
+                },
+                null,
+                2
+              )}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cost Estimation */}
       {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].estimatedCost && (
         <div className="grid gap-6 md:grid-cols-2">

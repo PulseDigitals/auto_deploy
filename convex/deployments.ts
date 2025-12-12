@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
 export const listDeploymentsByProject = query({
@@ -53,6 +54,11 @@ export const createDeployment = mutation({
       createdAt: now,
       updatedAt: now,
       logs: [],
+    });
+
+    // Immediately trigger deployment pipeline
+    await ctx.scheduler.runAfter(0, internal.deployments.startDeploymentPipeline, {
+      deploymentId,
     });
 
     return deploymentId;
@@ -161,6 +167,70 @@ export const updateStatus = internalMutation({
       logs: log
         ? [...(deployment.logs || []), log]
         : deployment.logs || [],
+    });
+  },
+});
+
+// Internal mutation to orchestrate full deployment pipeline
+export const startDeploymentPipeline = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+  },
+  handler: async (ctx, { deploymentId }) => {
+    const deployment = await ctx.db.get(deploymentId);
+    if (!deployment) return;
+
+    // Determine success (90% success rate)
+    const success = Math.random() > 0.1;
+
+    // Step 1: Initial log
+    await ctx.scheduler.runAfter(1000, internal.deployments.appendLog, {
+      deploymentId,
+      message: "Starting deployment…",
+    });
+
+    // Step 2: Transition to running
+    await ctx.scheduler.runAfter(2000, internal.deployments.updateStatus, {
+      deploymentId,
+      status: "running",
+      log: "Deployment environment initialized",
+    });
+
+    // Step 3: Build logs
+    await ctx.scheduler.runAfter(3000, internal.deployments.appendLog, {
+      deploymentId,
+      message: "Installing dependencies…",
+    });
+
+    await ctx.scheduler.runAfter(4000, internal.deployments.appendLog, {
+      deploymentId,
+      message: "Running build command…",
+    });
+
+    await ctx.scheduler.runAfter(5000, internal.deployments.appendLog, {
+      deploymentId,
+      message: "Uploading build artifacts…",
+    });
+
+    // Step 4: Generate artifacts on success
+    if (success) {
+      await ctx.scheduler.runAfter(6000, internal.deployments.generateArtifacts, {
+        deploymentId,
+      });
+
+      // Step 5: Generate cost estimate after artifacts
+      await ctx.scheduler.runAfter(6500, internal.costEstimation.generateCostEstimate, {
+        deploymentId,
+      });
+    }
+
+    // Step 6: Final status transition
+    await ctx.scheduler.runAfter(7000, internal.deployments.updateStatus, {
+      deploymentId,
+      status: success ? "success" : "failed",
+      log: success
+        ? "Deployment completed successfully."
+        : "Deployment failed during execution.",
     });
   },
 });
