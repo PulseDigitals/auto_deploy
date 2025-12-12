@@ -95,6 +95,16 @@ type DeploymentIntelligence = {
   };
 };
 
+type AIInsights = {
+  summary: string;
+  recommendation: string;
+  reasoning: string[];
+  confidenceScore: number;
+  migrationNotes: string[];
+  riskFactors: string[];
+  generated: boolean; // true if real AI, false if fallback
+};
+
 type Deployment = {
   _id: string;
   provider: string;
@@ -113,6 +123,7 @@ type Deployment = {
   costDrift?: CostDrift;
   alerts?: Alerts;
   deploymentIntelligence?: DeploymentIntelligence;
+  aiInsights?: AIInsights;
 };
 
 export default function ProjectDetail() {
@@ -1225,6 +1236,142 @@ export default function ProjectDetail() {
             <div className="pt-3 border-t border-slate-800">
               <p className="text-xs text-muted-foreground">
                 This analysis is based on deployment characteristics, provider capabilities, and industry best practices. Actual results may vary based on your specific requirements.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Insights Card (Real AI - Phase 12) */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].aiInsights && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-blue-400" />
+                AI Deployment Insights
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                {deployments[0].aiInsights.generated ? (
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-blue-500/20 text-blue-300 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    AI-Generated
+                  </span>
+                ) : (
+                  <span className="px-2 py-1 rounded text-xs font-medium bg-slate-500/20 text-slate-300">
+                    Fallback Mode
+                  </span>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Summary */}
+            <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <p className="text-sm leading-relaxed">
+                {deployments[0].aiInsights.summary}
+              </p>
+            </div>
+
+            {/* Confidence Score */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm font-medium">Confidence Score</span>
+                </div>
+                <span className="text-2xl font-bold">
+                  {Math.round(deployments[0].aiInsights.confidenceScore)}%
+                </span>
+              </div>
+              <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    deployments[0].aiInsights.confidenceScore >= 80
+                      ? "bg-green-500"
+                      : deployments[0].aiInsights.confidenceScore >= 50
+                      ? "bg-yellow-500"
+                      : "bg-red-500"
+                  }`}
+                  style={{ width: `${deployments[0].aiInsights.confidenceScore}%` }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {deployments[0].aiInsights.confidenceScore >= 80
+                  ? "High confidence - strong recommendation"
+                  : deployments[0].aiInsights.confidenceScore >= 50
+                  ? "Moderate confidence - consider additional factors"
+                  : "Low confidence - gather more data"}
+              </p>
+            </div>
+
+            {/* Recommendation */}
+            <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 space-y-3">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-yellow-400" />
+                <span className="font-medium">Recommendation</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {deployments[0].aiInsights.recommendation}
+              </p>
+            </div>
+
+            {/* Reasoning */}
+            {deployments[0].aiInsights.reasoning.length > 0 && (
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Key Insights</div>
+                <ul className="space-y-2">
+                  {deployments[0].aiInsights.reasoning.map((reason, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-blue-400 mt-1.5" />
+                      <span>{reason}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Risk Factors */}
+            {deployments[0].aiInsights.riskFactors.length > 0 && (
+              <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/30 space-y-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-orange-400" />
+                  <span className="font-medium text-orange-300">Risk Factors</span>
+                </div>
+                <ul className="space-y-2">
+                  {deployments[0].aiInsights.riskFactors.map((risk, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5" />
+                      <span>{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Migration Notes */}
+            {deployments[0].aiInsights.migrationNotes.length > 0 && (
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 space-y-3">
+                <div className="flex items-center gap-2">
+                  <GitBranch className="h-5 w-5 text-green-400" />
+                  <span className="font-medium">Migration Considerations</span>
+                </div>
+                <ul className="space-y-2">
+                  {deployments[0].aiInsights.migrationNotes.map((note, index) => (
+                    <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-green-400 mt-1.5" />
+                      <span>{note}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Disclaimer */}
+            <div className="pt-3 border-t border-slate-800">
+              <p className="text-xs text-muted-foreground">
+                <strong>Advisory:</strong> AI insights are recommendations based on typical usage patterns. 
+                Your actual costs and performance may vary. Always validate recommendations against your specific requirements.
               </p>
             </div>
           </CardContent>

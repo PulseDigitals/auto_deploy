@@ -114,6 +114,17 @@ export default defineSchema({
         }),
       })
     ),
+    aiInsights: v.optional(
+      v.object({
+        summary: v.string(),
+        recommendation: v.string(),
+        reasoning: v.array(v.string()),
+        confidenceScore: v.number(), // 0-100
+        migrationNotes: v.array(v.string()),
+        riskFactors: v.array(v.string()),
+        generated: v.boolean(), // true if real AI, false if fallback
+      })
+    ),
   }).index("by_projectId", ["projectId"]),
 
   alertHistory: defineTable({

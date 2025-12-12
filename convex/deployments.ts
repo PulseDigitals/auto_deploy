@@ -233,14 +233,19 @@ export const startDeploymentPipeline = internalMutation({
         deploymentId,
       });
 
-      // Step 8: Generate deployment intelligence (NEW - Phase 11A)
+      // Step 8: Generate deployment intelligence (Deterministic - Phase 11A)
       await ctx.scheduler.runAfter(8000, internal.deploymentIntelligence.generateDeploymentIntelligence, {
+        deploymentId,
+      });
+
+      // Step 9: Generate AI insights (Real AI - Phase 12)
+      await ctx.scheduler.runAfter(8500, internal.aiInsights.generateAIInsights, {
         deploymentId,
       });
     }
 
-    // Step 9: Final status transition
-    await ctx.scheduler.runAfter(8500, internal.deployments.updateStatus, {
+    // Step 10: Final status transition
+    await ctx.scheduler.runAfter(9000, internal.deployments.updateStatus, {
       deploymentId,
       status: success ? "success" : "failed",
       log: success

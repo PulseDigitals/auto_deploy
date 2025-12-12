@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as aiInsights from "../aiInsights.js";
+import type * as aiInsightsHelpers from "../aiInsightsHelpers.js";
 import type * as analyzeCodebase from "../analyzeCodebase.js";
 import type * as costEstimation from "../costEstimation.js";
 import type * as costGuardrails from "../costGuardrails.js";
@@ -28,6 +30,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiInsights: typeof aiInsights;
+  aiInsightsHelpers: typeof aiInsightsHelpers;
   analyzeCodebase: typeof analyzeCodebase;
   costEstimation: typeof costEstimation;
   costGuardrails: typeof costGuardrails;
