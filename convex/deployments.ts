@@ -227,9 +227,14 @@ export const startDeploymentPipeline = internalMutation({
       await ctx.scheduler.runAfter(7000, internal.costOptimization.generateOptimizationAdvice, {
         deploymentId,
       });
+
+      // Step 7: Set cost baseline for guardrails
+      await ctx.scheduler.runAfter(7500, internal.costGuardrails.setCostBaseline, {
+        deploymentId,
+      });
     }
 
-    // Step 6: Final status transition
+    // Step 8: Final status transition
     await ctx.scheduler.runAfter(7000, internal.deployments.updateStatus, {
       deploymentId,
       status: success ? "success" : "failed",

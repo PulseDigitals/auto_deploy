@@ -10,6 +10,8 @@
 
 import type * as analyzeCodebase from "../analyzeCodebase.js";
 import type * as costEstimation from "../costEstimation.js";
+import type * as costGuardrails from "../costGuardrails.js";
+import type * as costGuardrailsPublic from "../costGuardrailsPublic.js";
 import type * as costOptimization from "../costOptimization.js";
 import type * as deployments from "../deployments.js";
 import type * as domains from "../domains.js";
@@ -27,6 +29,8 @@ import type {
 declare const fullApi: ApiFromModules<{
   analyzeCodebase: typeof analyzeCodebase;
   costEstimation: typeof costEstimation;
+  costGuardrails: typeof costGuardrails;
+  costGuardrailsPublic: typeof costGuardrailsPublic;
   costOptimization: typeof costOptimization;
   deployments: typeof deployments;
   domains: typeof domains;

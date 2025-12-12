@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
@@ -45,6 +45,18 @@ type CostAdvisor = {
   confidenceScore: number;
 };
 
+type CostAlerts = {
+  thresholdPercent: number;
+  triggered: boolean;
+  lastCheckedAt: number;
+};
+
+type CostDrift = {
+  currentEstimate: number;
+  percentIncrease: number;
+  status: string; // "normal" | "warning" | "critical"
+};
+
 type Deployment = {
   _id: string;
   provider: string;
@@ -58,6 +70,9 @@ type Deployment = {
   estimatedCost?: CostEstimate;
   costComparison?: CostComparison[];
   costAdvisor?: CostAdvisor;
+  costBaseline?: number;
+  costAlerts?: CostAlerts;
+  costDrift?: CostDrift;
 };
 
 export default function ProjectDetail() {
@@ -80,6 +95,7 @@ export default function ProjectDetail() {
   const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
   const addDomain = useMutation(api.domains.addDomain);
   const updateDomainStatus = useMutation(api.domains.updateDomainStatus);
+  const simulateCostDrift = useMutation(api.costGuardrailsPublic.simulateCostDrift);
 
   const handleDeploy = async () => {
     if (!project) return;
@@ -411,6 +427,9 @@ export default function ProjectDetail() {
                   costComparison: deployments[0].costComparison,
                   hasCostAdvisor: !!deployments[0].costAdvisor,
                   costAdvisor: deployments[0].costAdvisor,
+                  costBaseline: deployments[0].costBaseline,
+                  costAlerts: deployments[0].costAlerts,
+                  costDrift: deployments[0].costDrift,
                 },
                 null,
                 2
@@ -582,6 +601,173 @@ export default function ProjectDetail() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Cost Guardrails */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].costDrift && (
+        <Card className={`border-l-4 ${
+          deployments[0].costDrift.status === "critical" 
+            ? "border-l-red-500" 
+            : deployments[0].costDrift.status === "warning"
+            ? "border-l-yellow-500"
+            : "border-l-green-500"
+        }`}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-400" />
+              Cost Guardrails
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Status Overview */}
+            <div className="flex items-start gap-3">
+              {deployments[0].costDrift.status === "normal" ? (
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <CheckCircle2 className="h-5 w-5 text-green-400" />
+                </div>
+              ) : deployments[0].costDrift.status === "warning" ? (
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                </div>
+              ) : (
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                </div>
+              )}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">
+                  {deployments[0].costDrift.status === "normal"
+                    ? "Costs are within expected range"
+                    : deployments[0].costDrift.status === "warning"
+                    ? "Costs increased — monitoring recommended"
+                    : "Significant cost increase detected"}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {deployments[0].costDrift.status === "normal"
+                    ? "Your deployment costs are stable and predictable"
+                    : deployments[0].costDrift.status === "warning"
+                    ? "Your costs have increased moderately. Review usage patterns."
+                    : "Your costs have increased significantly. Action recommended."}
+                </p>
+              </div>
+            </div>
+
+            {/* Cost Drift Timeline */}
+            <div className={`p-4 rounded-lg border ${
+              deployments[0].costDrift.status === "critical"
+                ? "bg-red-500/10 border-red-500/30"
+                : deployments[0].costDrift.status === "warning"
+                ? "bg-yellow-500/10 border-yellow-500/30"
+                : "bg-green-500/10 border-green-500/30"
+            }`}>
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Cost Drift Timeline</div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-muted-foreground">Initial Estimate:</span>
+                  <span className="font-semibold">${deployments[0].costBaseline}/mo</span>
+                  <TrendingUp className={`h-4 w-4 ${
+                    deployments[0].costDrift.percentIncrease > 0 ? "text-red-400" : "text-green-400"
+                  }`} />
+                  <span className="text-muted-foreground">Current Estimate:</span>
+                  <span className="font-semibold">${deployments[0].costDrift.currentEstimate}/mo</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    deployments[0].costDrift.percentIncrease > 0
+                      ? "bg-red-500/20 text-red-300"
+                      : "bg-green-500/20 text-green-300"
+                  }`}>
+                    {deployments[0].costDrift.percentIncrease > 0 ? "+" : ""}
+                    {deployments[0].costDrift.percentIncrease}%
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Alert Configuration */}
+            {deployments[0].costAlerts && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Alert Settings</div>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span>Alert threshold:</span>
+                  <span className="px-2 py-1 rounded bg-slate-800 font-medium text-foreground">
+                    {deployments[0].costAlerts.thresholdPercent}%
+                  </span>
+                  <span>increase</span>
+                  {deployments[0].costAlerts.triggered && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 text-xs font-medium">
+                      Alert Triggered
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  You'll be notified when costs increase by more than this percentage
+                </p>
+              </div>
+            )}
+
+            {/* Demo Controls */}
+            <div className="pt-3 border-t border-slate-800">
+              <details className="space-y-2">
+                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                  Demo: Simulate Cost Changes
+                </summary>
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await simulateCostDrift({
+                        deploymentId: deployments[0]._id as Id<"deployments">,
+                        percentIncrease: 0,
+                      });
+                      toast.success("Cost reset to baseline");
+                    }}
+                  >
+                    Reset (0%)
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await simulateCostDrift({
+                        deploymentId: deployments[0]._id as Id<"deployments">,
+                        percentIncrease: 10,
+                      });
+                      toast.success("Simulated +10% increase");
+                    }}
+                  >
+                    +10%
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await simulateCostDrift({
+                        deploymentId: deployments[0]._id as Id<"deployments">,
+                        percentIncrease: 22,
+                      });
+                      toast.success("Simulated +22% increase");
+                    }}
+                  >
+                    +22%
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await simulateCostDrift({
+                        deploymentId: deployments[0]._id as Id<"deployments">,
+                        percentIncrease: 35,
+                      });
+                      toast.success("Simulated +35% increase");
+                    }}
+                  >
+                    +35%
+                  </Button>
+                </div>
+              </details>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Cost Optimization Advisor */}

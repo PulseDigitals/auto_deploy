@@ -65,6 +65,21 @@ export default defineSchema({
         confidenceScore: v.number(), // 0-100
       })
     ),
+    costBaseline: v.optional(v.number()), // baseline monthly estimate at deploy time
+    costAlerts: v.optional(
+      v.object({
+        thresholdPercent: v.number(), // e.g. 20
+        triggered: v.boolean(),
+        lastCheckedAt: v.number(),
+      })
+    ),
+    costDrift: v.optional(
+      v.object({
+        currentEstimate: v.number(),
+        percentIncrease: v.number(),
+        status: v.string(), // "normal" | "warning" | "critical"
+      })
+    ),
   }).index("by_projectId", ["projectId"]),
 
   domains: defineTable({
