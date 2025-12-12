@@ -32,7 +32,10 @@ export const createDeployment = mutation({
     deploymentMode: v.optional(v.union(v.literal("simulation"), v.literal("live"))), // Default: "simulation"
   },
   handler: async (ctx, { projectId, providerId, deploymentMode }) => {
-    // Map providerId -> provider name (simple mapping for backend safety)
+    // CRITICAL: All deployments flow through the provider registry
+    // This is the single source of truth for deployment execution
+    
+    // Map providerId -> provider name (simple mapping for display)
     const providerNameMap: Record<string, string> = {
       vercel: "Vercel",
       netlify: "Netlify",
@@ -59,7 +62,7 @@ export const createDeployment = mutation({
       logs: [],
     });
 
-    // Immediately trigger deployment pipeline
+    // Immediately trigger provider-agnostic deployment pipeline
     await ctx.scheduler.runAfter(0, internal.deployments.startDeploymentPipeline, {
       deploymentId,
     });
@@ -175,6 +178,7 @@ export const updateStatus = internalMutation({
 });
 
 // Internal mutation to orchestrate full deployment pipeline
+// CRITICAL: This is the provider-agnostic execution engine
 export const startDeploymentPipeline = internalMutation({
   args: {
     deploymentId: v.id("deployments"),
@@ -186,23 +190,54 @@ export const startDeploymentPipeline = internalMutation({
     const isLiveMode = deployment.deploymentMode === "live";
     const isVercel = deployment.providerId === "vercel";
 
-    // LIVE DEPLOYMENT PATH (Vercel only for now)
-    if (isLiveMode && isVercel) {
-      // Trigger live Vercel deployment
-      await ctx.scheduler.runAfter(500, internal.vercel.liveDeployment.executeLiveDeployment, {
+    // LIVE DEPLOYMENT PATH (Provider-specific executors)
+    if (isLiveMode) {
+      // Route to provider-specific live executor
+      if (isVercel) {
+        // Trigger live Vercel deployment
+        await ctx.scheduler.runAfter(500, internal.vercel.liveDeployment.executeLiveDeployment, {
+          deploymentId,
+        });
+        return;
+      }
+      
+      // Other providers not yet implemented for live mode
+      await ctx.scheduler.runAfter(500, internal.deployments.appendLog, {
         deploymentId,
+        message: `Live deployment not yet available for ${deployment.provider}. Please use simulation mode.`,
+      });
+      await ctx.scheduler.runAfter(1000, internal.deployments.updateStatus, {
+        deploymentId,
+        status: "failed",
+        log: "Live deployment not available for this provider",
       });
       return;
     }
 
-    // SIMULATION DEPLOYMENT PATH (Default)
+    // SIMULATION DEPLOYMENT PATH (Universal - works for all providers)
+    // This is the provider-agnostic simulation engine
+    await ctx.scheduler.runAfter(0, internal.deployments.executeSimulationPipeline, {
+      deploymentId,
+    });
+  },
+});
+
+// Internal mutation for unified simulation pipeline
+export const executeSimulationPipeline = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+  },
+  handler: async (ctx, { deploymentId }) => {
+    const deployment = await ctx.db.get(deploymentId);
+    if (!deployment) return;
+
     // Determine success (90% success rate)
     const success = Math.random() > 0.1;
 
     // Step 1: Initial log
     await ctx.scheduler.runAfter(1000, internal.deployments.appendLog, {
       deploymentId,
-      message: "Starting deployment simulation…",
+      message: `Starting ${deployment.provider} deployment simulation…`,
     });
 
     // Step 2: Transition to running

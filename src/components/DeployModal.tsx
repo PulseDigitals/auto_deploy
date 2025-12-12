@@ -16,6 +16,7 @@ import { AlertTriangle, Rocket, Lock, Link2 } from "lucide-react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
 import { Link } from "react-router-dom";
 import type { ProviderId } from "@/config/providers.ts";
+import { PROVIDERS } from "@/config/providers.ts";
 import { hasAccess, getRequiredPlan, type SubscriptionPlan } from "@/config/plans.ts";
 
 interface DeployModalProps {
@@ -114,23 +115,39 @@ export default function DeployModal({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Requires provider authorization. Charges may apply.
+                  {PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live
+                    ? "Requires provider authorization. Charges may apply."
+                    : "Live deployment coming soon for this provider"}
                 </p>
               </div>
               <Switch
                 id="live-deployment"
                 checked={enableLiveDeployment}
                 onCheckedChange={handleToggleLive}
-                disabled={!canUseLiveDeployment || isDeploying}
+                disabled={
+                  !canUseLiveDeployment ||
+                  isDeploying ||
+                  !PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live
+                }
               />
             </div>
 
             {/* Upgrade message for users without access */}
-            {!canUseLiveDeployment && (
+            {!canUseLiveDeployment && PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live && (
               <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
                 <p className="text-xs text-orange-200">
                   <strong>Upgrade to {requiredPlan}</strong> to enable live deployments with real
                   infrastructure.
+                </p>
+              </div>
+            )}
+
+            {/* Provider not ready message */}
+            {!PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live && (
+              <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                <p className="text-xs text-blue-200">
+                  Live deployment for <strong>{PROVIDERS.find((p) => p.id === selectedProvider)?.name}</strong> coming
+                  soon! For now, use simulation mode or try Vercel for live deployments.
                 </p>
               </div>
             )}
