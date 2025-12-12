@@ -6,12 +6,14 @@ import Projects from "./pages/Projects.tsx";
 import ProjectDetail from "./pages/ProjectDetail.tsx";
 import Deployments from "./pages/Deployments.tsx";
 import Settings from "./pages/Settings.tsx";
+import Pricing from "./pages/Pricing.tsx";
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
+        <Route path="/pricing" element={<Pricing />} />
 
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />

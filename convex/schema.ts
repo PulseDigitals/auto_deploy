@@ -6,6 +6,12 @@ export default defineSchema({
     tokenIdentifier: v.string(),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
+    subscription: v.optional(
+      v.object({
+        plan: v.string(), // "free" | "pro" | "team" | "enterprise"
+        activatedAt: v.number(),
+      })
+    ),
   }).index("by_token", ["tokenIdentifier"]),
 
   projects: defineTable({
@@ -94,8 +100,9 @@ export default defineSchema({
     projectId: v.id("projects"),
     alertType: v.string(), // "warning" | "critical"
     channel: v.string(), // "email" | "slack"
-    status: v.string(), // "sent" | "failed"
+    status: v.string(), // "sent" | "failed" | "blocked"
     message: v.string(),
+    blockedReason: v.optional(v.string()), // "upgrade_required" | null
     createdAt: v.number(),
   }).index("by_deployment", ["deploymentId"]),
 

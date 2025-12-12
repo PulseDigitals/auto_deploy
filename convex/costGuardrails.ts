@@ -168,30 +168,72 @@ async function dispatchAlert(
 
   // Generate alert message
   const message = generateAlertMessage(alertType, payload);
+  
+  // Get user plan for feature gating
+  const identity = await ctx.auth.getUserIdentity();
+  let userPlan = "free";
+  
+  if (identity) {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+    userPlan = user?.subscription?.plan || "free";
+  }
 
-  // Simulate email alert
-  console.log(`📧 [EMAIL ALERT - ${alertType.toUpperCase()}]`, message);
-  await ctx.db.insert("alertHistory", {
-    deploymentId,
-    projectId,
-    alertType,
-    channel: "email",
-    status: "sent",
-    message,
-    createdAt: now,
-  });
+  // Email Alert: Available on Pro+
+  const hasEmailAccess = userPlan !== "free";
+  if (hasEmailAccess) {
+    console.log(`📧 [EMAIL ALERT - ${alertType.toUpperCase()}]`, message);
+    await ctx.db.insert("alertHistory", {
+      deploymentId,
+      projectId,
+      alertType,
+      channel: "email",
+      status: "sent",
+      message,
+      createdAt: now,
+    });
+  } else {
+    console.log(`🔒 [EMAIL ALERT BLOCKED - ${alertType.toUpperCase()}] User needs Pro plan`);
+    await ctx.db.insert("alertHistory", {
+      deploymentId,
+      projectId,
+      alertType,
+      channel: "email",
+      status: "blocked",
+      message,
+      blockedReason: "upgrade_required",
+      createdAt: now,
+    });
+  }
 
-  // Simulate Slack alert
-  console.log(`💬 [SLACK ALERT - ${alertType.toUpperCase()}]`, message);
-  await ctx.db.insert("alertHistory", {
-    deploymentId,
-    projectId,
-    alertType,
-    channel: "slack",
-    status: "sent",
-    message,
-    createdAt: now,
-  });
+  // Slack Alert: Available on Team+
+  const hasSlackAccess = userPlan === "team" || userPlan === "enterprise";
+  if (hasSlackAccess) {
+    console.log(`💬 [SLACK ALERT - ${alertType.toUpperCase()}]`, message);
+    await ctx.db.insert("alertHistory", {
+      deploymentId,
+      projectId,
+      alertType,
+      channel: "slack",
+      status: "sent",
+      message,
+      createdAt: now,
+    });
+  } else {
+    console.log(`🔒 [SLACK ALERT BLOCKED - ${alertType.toUpperCase()}] User needs Team plan`);
+    await ctx.db.insert("alertHistory", {
+      deploymentId,
+      projectId,
+      alertType,
+      channel: "slack",
+      status: "blocked",
+      message,
+      blockedReason: "upgrade_required",
+      createdAt: now,
+    });
+  }
 }
 
 /**

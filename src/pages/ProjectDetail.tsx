@@ -6,15 +6,17 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
 import ProviderInstructions from "@/components/ProviderInstructions.tsx";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 import ArtifactExplorer from "@/components/ArtifactExplorer.tsx";
+import UpgradeModal from "@/components/UpgradeModal.tsx";
 import type { ProviderId } from "@/config/providers.ts";
 import { getProviderConfig } from "@/config/providers.ts";
+import { hasAccess, getRequiredPlan, type SubscriptionPlan } from "@/config/plans.ts";
 
 type Artifact = {
   path: string;
@@ -69,6 +71,7 @@ type AlertHistoryItem = {
   channel: string;
   status: string;
   message: string;
+  blockedReason?: string;
   createdAt: number;
 };
 
@@ -99,7 +102,10 @@ export default function ProjectDetail() {
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
   const [newDomain, setNewDomain] = useState("");
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState({ name: "", plan: "" });
 
+  const currentUser = useQuery(api.users.getCurrentUser);
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
     projectId,
@@ -112,6 +118,8 @@ export default function ProjectDetail() {
       ? { deploymentId: deployments[0]._id as Id<"deployments"> }
       : "skip"
   ) as AlertHistoryItem[] | undefined;
+  
+  const userPlan: SubscriptionPlan = (currentUser?.subscription?.plan as SubscriptionPlan) || "free";
 
   const createDeployment = useMutation(api.deployments.createDeployment);
   const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
@@ -770,11 +778,15 @@ export default function ProjectDetail() {
                       className="flex items-start gap-3 p-3 rounded-lg bg-slate-900/50 border border-slate-800"
                     >
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                        alert.alertType === "critical"
+                        alert.status === "blocked"
+                          ? "bg-slate-700"
+                          : alert.alertType === "critical"
                           ? "bg-red-500/20"
                           : "bg-yellow-500/20"
                       }`}>
-                        {alert.channel === "email" ? (
+                        {alert.status === "blocked" ? (
+                          <Lock className="h-4 w-4 text-slate-400" />
+                        ) : alert.channel === "email" ? (
                           <Mail className={`h-4 w-4 ${
                             alert.alertType === "critical" ? "text-red-400" : "text-yellow-400"
                           }`} />
@@ -785,7 +797,7 @@ export default function ProjectDetail() {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                             alert.alertType === "critical"
                               ? "bg-red-500/20 text-red-300"
@@ -799,6 +811,8 @@ export default function ProjectDetail() {
                           <span className={`text-xs px-2 py-0.5 rounded-full ${
                             alert.status === "sent"
                               ? "bg-green-500/20 text-green-300"
+                              : alert.status === "blocked"
+                              ? "bg-amber-500/20 text-amber-300"
                               : "bg-red-500/20 text-red-300"
                           }`}>
                             {alert.status}
@@ -807,6 +821,22 @@ export default function ProjectDetail() {
                         <div className="text-xs text-muted-foreground mt-1">
                           {new Date(alert.createdAt).toLocaleString()}
                         </div>
+                        {alert.status === "blocked" && alert.blockedReason === "upgrade_required" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 h-7 text-xs"
+                            onClick={() => {
+                              const feature = alert.channel === "email" ? "Email alerts" : "Slack alerts";
+                              const plan = alert.channel === "email" ? "Pro" : "Team";
+                              setUpgradeFeature({ name: feature, plan });
+                              setUpgradeModalOpen(true);
+                            }}
+                          >
+                            <Lock className="mr-1 h-3 w-3" />
+                            Upgrade Required
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1058,6 +1088,13 @@ export default function ProjectDetail() {
           onClose={() => setSelectedDeployment(null)}
         />
       )}
+      
+      <UpgradeModal
+        open={upgradeModalOpen}
+        onOpenChange={setUpgradeModalOpen}
+        feature={upgradeFeature.name}
+        requiredPlan={upgradeFeature.plan}
+      />
     </div>
   );
 }
