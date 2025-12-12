@@ -87,6 +87,63 @@ export const appendLog = internalMutation({
   },
 });
 
+// Internal mutation to generate fake build artifacts
+export const generateArtifacts = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+  },
+  handler: async (ctx, { deploymentId }) => {
+    const deployment = await ctx.db.get(deploymentId);
+    if (!deployment) return;
+
+    // Generate mock artifacts based on provider
+    const artifacts = [
+      { path: "dist", type: "folder" },
+      {
+        path: "dist/index.html",
+        type: "file",
+        size: 12,
+        content: `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${deployment.provider} Deployment</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/assets/main.js"></script>
+  </body>
+</html>`,
+      },
+      { path: "dist/assets", type: "folder" },
+      {
+        path: "dist/assets/main.js",
+        type: "file",
+        size: 412,
+        content: "/* Main application bundle */\nimport { App } from './App';\nApp.init();",
+      },
+      { path: "dist/assets/vendor.js", type: "file", size: 213 },
+      {
+        path: "dist/assets/styles.css",
+        type: "file",
+        size: 117,
+        content: "/* Global styles */\nbody { margin: 0; font-family: sans-serif; }",
+      },
+    ];
+
+    const buildTime = 1.2 + Math.random() * 0.5; // 1.2-1.7 seconds
+    const randomId = Math.random().toString(36).substring(2, 10);
+    const previewUrl = `https://${deployment.projectId.slice(0, 8)}-${randomId}.${deployment.providerId || "vercel"}.app`;
+
+    await ctx.db.patch(deploymentId, {
+      artifacts,
+      buildTime: Math.round(buildTime * 10) / 10,
+      previewUrl,
+    });
+  },
+});
+
 // Internal mutation for scheduler to update deployment status and logs
 export const updateStatus = internalMutation({
   args: {

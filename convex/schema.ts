@@ -26,6 +26,18 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
     status: v.string(), // "pending" | "running" | "success" | "failed"
     logs: v.optional(v.array(v.string())),
+    artifacts: v.optional(
+      v.array(
+        v.object({
+          path: v.string(),
+          type: v.string(), // "file" | "folder"
+          content: v.optional(v.string()),
+          size: v.optional(v.number()),
+        })
+      )
+    ),
+    buildTime: v.optional(v.number()), // in seconds
+    previewUrl: v.optional(v.string()),
   }).index("by_projectId", ["projectId"]),
 
   domains: defineTable({

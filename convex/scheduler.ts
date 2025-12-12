@@ -45,6 +45,13 @@ export const tick = internalMutation({
           message: "Uploading build artifacts…",
         });
 
+        // Generate artifacts on success
+        if (success) {
+          await ctx.scheduler.runAfter(5000, internal.deployments.generateArtifacts, {
+            deploymentId: d._id,
+          });
+        }
+
         // Final status transition with completion log
         await ctx.scheduler.runAfter(5000, internal.deployments.updateStatus, {
           deploymentId: d._id,

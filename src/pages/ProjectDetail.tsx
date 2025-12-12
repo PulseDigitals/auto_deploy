@@ -5,13 +5,22 @@ import type { Id } from "@/convex/_generated/dataModel.d.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input.tsx";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
 import ProviderInstructions from "@/components/ProviderInstructions.tsx";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
+import ArtifactExplorer from "@/components/ArtifactExplorer.tsx";
 import type { ProviderId } from "@/config/providers.ts";
+
+type Artifact = {
+  path: string;
+  type: string;
+  content?: string;
+  size?: number;
+};
 
 type Deployment = {
   _id: string;
@@ -19,6 +28,9 @@ type Deployment = {
   status: string;
   createdAt: number;
   logs?: string[];
+  artifacts?: Artifact[];
+  buildTime?: number;
+  previewUrl?: string;
 };
 
 export default function ProjectDetail() {
@@ -28,6 +40,7 @@ export default function ProjectDetail() {
   const [isDeploying, setIsDeploying] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
+  const [newDomain, setNewDomain] = useState("");
 
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
@@ -38,6 +51,8 @@ export default function ProjectDetail() {
 
   const createDeployment = useMutation(api.deployments.createDeployment);
   const analyzeCodebase = useAction(api.analyzeCodebase.analyzeCodebase);
+  const addDomain = useMutation(api.domains.addDomain);
+  const updateDomainStatus = useMutation(api.domains.updateDomainStatus);
 
   const handleDeploy = async () => {
     if (!project) return;
@@ -65,6 +80,35 @@ export default function ProjectDetail() {
       console.error(error);
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleAddDomain = async () => {
+    if (!newDomain.trim()) {
+      toast.error("Please enter a domain name");
+      return;
+    }
+
+    try {
+      const domainId = await addDomain({
+        projectId,
+        domain: newDomain.trim(),
+      });
+
+      toast.success(`Domain ${newDomain} added!`);
+      setNewDomain("");
+
+      // Simulate domain status transitions
+      setTimeout(async () => {
+        await updateDomainStatus({ domainId, status: "verifying" });
+      }, 3000);
+
+      setTimeout(async () => {
+        await updateDomainStatus({ domainId, status: "active" });
+        toast.success(`Domain ${newDomain} is now active!`);
+      }, 6000);
+    } catch (error) {
+      toast.error("Failed to add domain");
     }
   };
 
@@ -214,10 +258,22 @@ export default function ProjectDetail() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Globe className="h-5 w-5" />
-              Domains
+              Custom Domains
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="example.com"
+                value={newDomain}
+                onChange={(e) => setNewDomain(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddDomain()}
+              />
+              <Button onClick={handleAddDomain} size="sm">
+                Add Domain
+              </Button>
+            </div>
+
             {domains === undefined ? (
               <Skeleton className="h-20 w-full" />
             ) : domains.length > 0 ? (
@@ -228,14 +284,24 @@ export default function ProjectDetail() {
                     className="flex items-center justify-between p-2 bg-muted/50 rounded"
                   >
                     <span className="text-sm">{domain.domain}</span>
-                    <span className="text-xs text-muted-foreground">
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        domain.status === "active"
+                          ? "bg-green-500/20 text-green-300"
+                          : domain.status === "verifying"
+                          ? "bg-blue-500/20 text-blue-300"
+                          : "bg-yellow-500/20 text-yellow-300"
+                      }`}
+                    >
                       {domain.status}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No domains yet</p>
+              <p className="text-sm text-muted-foreground">
+                No custom domains configured
+              </p>
             )}
           </CardContent>
         </Card>
@@ -258,6 +324,64 @@ export default function ProjectDetail() {
         </Card>
       )}
 
+      {/* Latest Deployment Summary */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-green-400" />
+              Latest Deployment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <div className="text-sm">
+                  ✔ Build completed in{" "}
+                  <span className="font-semibold">{deployments[0].buildTime || "1.3"}s</span>
+                </div>
+                <div className="text-sm">
+                  ✔{" "}
+                  <span className="font-semibold">
+                    {deployments[0].artifacts?.length || 0} artifacts
+                  </span>{" "}
+                  generated
+                </div>
+                {deployments[0].previewUrl && (
+                  <div className="text-sm flex items-center gap-2">
+                    ✔ Preview URL:
+                    <a
+                      href={deployments[0].previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      {deployments[0].previewUrl.replace("https://", "")}
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Deployment Artifacts */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Deployment Artifacts
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ArtifactExplorer artifacts={deployments[0].artifacts} />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Deployments */}
       <Card>
         <CardHeader>
@@ -272,10 +396,10 @@ export default function ProjectDetail() {
             </div>
           ) : deployments.length > 0 ? (
             <div className="space-y-3">
-              {deployments.map((deployment: { _id: string; provider: string; createdAt: number; status: string; logs?: string[] }) => (
+              {deployments.map((deployment: Deployment) => (
                 <div
                   key={deployment._id}
-                  onClick={() => setSelectedDeployment(deployment as Deployment)}
+                  onClick={() => setSelectedDeployment(deployment)}
                   className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
                 >
                   <div>
