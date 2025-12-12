@@ -93,6 +93,27 @@ export default defineSchema({
         lastNotifiedAt: v.optional(v.number()),
       })
     ),
+    deploymentIntelligence: v.optional(
+      v.object({
+        recommendation: v.string(), // "stay" | "switch" | "monitor"
+        confidenceScore: v.number(), // 0-100
+        riskLevel: v.string(), // "low" | "medium" | "high"
+        recommendedProvider: v.string(),
+        reasoning: v.array(v.string()),
+        suitabilityScores: v.object({
+          vercel: v.number(),
+          netlify: v.number(),
+          render: v.number(),
+          railway: v.number(),
+          aws: v.number(),
+        }),
+        migrationReadiness: v.object({
+          difficulty: v.string(), // "easy" | "medium" | "hard"
+          estimatedTime: v.string(),
+          risks: v.array(v.string()),
+        }),
+      })
+    ),
   }).index("by_projectId", ["projectId"]),
 
   alertHistory: defineTable({

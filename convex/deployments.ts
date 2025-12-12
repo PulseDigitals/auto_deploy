@@ -232,10 +232,15 @@ export const startDeploymentPipeline = internalMutation({
       await ctx.scheduler.runAfter(7500, internal.costGuardrails.setCostBaseline, {
         deploymentId,
       });
+
+      // Step 8: Generate deployment intelligence (NEW - Phase 11A)
+      await ctx.scheduler.runAfter(8000, internal.deploymentIntelligence.generateDeploymentIntelligence, {
+        deploymentId,
+      });
     }
 
-    // Step 8: Final status transition
-    await ctx.scheduler.runAfter(7000, internal.deployments.updateStatus, {
+    // Step 9: Final status transition
+    await ctx.scheduler.runAfter(8500, internal.deployments.updateStatus, {
       deploymentId,
       status: success ? "success" : "failed",
       log: success

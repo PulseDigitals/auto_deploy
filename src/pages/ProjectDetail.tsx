@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell, Lock } from "lucide-react";
+import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell, Lock, Brain, Activity, Target, Clock, AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
@@ -75,6 +75,26 @@ type AlertHistoryItem = {
   createdAt: number;
 };
 
+type DeploymentIntelligence = {
+  recommendation: string; // "stay" | "switch" | "monitor"
+  confidenceScore: number;
+  riskLevel: string; // "low" | "medium" | "high"
+  recommendedProvider: string;
+  reasoning: string[];
+  suitabilityScores: {
+    vercel: number;
+    netlify: number;
+    render: number;
+    railway: number;
+    aws: number;
+  };
+  migrationReadiness: {
+    difficulty: string;
+    estimatedTime: string;
+    risks: string[];
+  };
+};
+
 type Deployment = {
   _id: string;
   provider: string;
@@ -92,6 +112,7 @@ type Deployment = {
   costAlerts?: CostAlerts;
   costDrift?: CostDrift;
   alerts?: Alerts;
+  deploymentIntelligence?: DeploymentIntelligence;
 };
 
 export default function ProjectDetail() {
@@ -1000,6 +1021,210 @@ export default function ProjectDetail() {
             <div className="pt-3 border-t border-slate-800">
               <p className="text-xs text-muted-foreground">
                 This recommendation is based on typical usage patterns. Your actual costs may vary based on traffic and resource usage.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Deployment Intelligence (Phase 11A) */}
+      {deployments && deployments.length > 0 && deployments[0].status === "success" && deployments[0].deploymentIntelligence && (
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-400" />
+              AI Deployment Intelligence
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Recommendation Banner */}
+            <div className={`p-4 rounded-lg border-2 ${
+              deployments[0].deploymentIntelligence.recommendation === "stay"
+                ? "bg-green-500/10 border-green-500/30"
+                : deployments[0].deploymentIntelligence.recommendation === "switch"
+                ? "bg-orange-500/10 border-orange-500/30"
+                : "bg-blue-500/10 border-blue-500/30"
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                  deployments[0].deploymentIntelligence.recommendation === "stay"
+                    ? "bg-green-500/20"
+                    : deployments[0].deploymentIntelligence.recommendation === "switch"
+                    ? "bg-orange-500/20"
+                    : "bg-blue-500/20"
+                }`}>
+                  {deployments[0].deploymentIntelligence.recommendation === "stay" ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-400" />
+                  ) : deployments[0].deploymentIntelligence.recommendation === "switch" ? (
+                    <Target className="h-5 w-5 text-orange-400" />
+                  ) : (
+                    <Activity className="h-5 w-5 text-blue-400" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-lg capitalize">
+                    {deployments[0].deploymentIntelligence.recommendation === "stay"
+                      ? "Stay on Current Provider"
+                      : deployments[0].deploymentIntelligence.recommendation === "switch"
+                      ? "Consider Switching Provider"
+                      : "Monitor Performance"}
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {deployments[0].deploymentIntelligence.recommendation === "stay"
+                      ? "Your current setup is optimally configured for this workload"
+                      : deployments[0].deploymentIntelligence.recommendation === "switch"
+                      ? `${deployments[0].deploymentIntelligence.recommendedProvider} may offer better value for your use case`
+                      : "Watch for performance and cost trends before making changes"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Metrics Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Confidence Score */}
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Activity className="h-4 w-4 text-blue-400" />
+                  <span className="text-sm text-muted-foreground">Confidence</span>
+                </div>
+                <div className="text-2xl font-bold">
+                  {Math.round(deployments[0].deploymentIntelligence.confidenceScore)}%
+                </div>
+                <div className="mt-2 h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all"
+                    style={{ width: `${deployments[0].deploymentIntelligence.confidenceScore}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Risk Level */}
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="h-4 w-4 text-yellow-400" />
+                  <span className="text-sm text-muted-foreground">Risk Level</span>
+                </div>
+                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${
+                  deployments[0].deploymentIntelligence.riskLevel === "low"
+                    ? "bg-green-500/20 text-green-300"
+                    : deployments[0].deploymentIntelligence.riskLevel === "medium"
+                    ? "bg-yellow-500/20 text-yellow-300"
+                    : "bg-red-500/20 text-red-300"
+                }`}>
+                  {deployments[0].deploymentIntelligence.riskLevel === "low" ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : deployments[0].deploymentIntelligence.riskLevel === "medium" ? (
+                    <AlertTriangle className="h-4 w-4" />
+                  ) : (
+                    <AlertOctagon className="h-4 w-4" />
+                  )}
+                  {deployments[0].deploymentIntelligence.riskLevel.charAt(0).toUpperCase() + deployments[0].deploymentIntelligence.riskLevel.slice(1)}
+                </div>
+              </div>
+
+              {/* Recommended Provider */}
+              <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="h-4 w-4 text-purple-400" />
+                  <span className="text-sm text-muted-foreground">Best For You</span>
+                </div>
+                <div className="text-lg font-semibold">
+                  {deployments[0].deploymentIntelligence.recommendedProvider}
+                </div>
+              </div>
+            </div>
+
+            {/* Provider Suitability Table */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Provider Suitability Scores</div>
+              <div className="space-y-2">
+                {Object.entries(deployments[0].deploymentIntelligence.suitabilityScores)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([provider, score]) => (
+                    <div key={provider} className="flex items-center gap-3">
+                      <div className="w-24 text-sm capitalize">
+                        {provider}
+                      </div>
+                      <div className="flex-1 h-8 bg-slate-800 rounded-full overflow-hidden relative">
+                        <div
+                          className={`h-full transition-all ${
+                            provider === deployments[0].providerId?.toLowerCase()
+                              ? "bg-purple-500"
+                              : "bg-slate-600"
+                          }`}
+                          style={{ width: `${score}%` }}
+                        />
+                        {provider === deployments[0].providerId?.toLowerCase() && (
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-medium text-white">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <div className="w-12 text-right text-sm font-medium">
+                        {score}%
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* Migration Readiness */}
+            <div className="p-4 rounded-lg bg-slate-900/50 border border-slate-800 space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-400" />
+                <span className="font-medium">Migration Readiness</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Difficulty</div>
+                  <div className={`inline-flex px-2 py-1 rounded text-sm font-medium ${
+                    deployments[0].deploymentIntelligence.migrationReadiness.difficulty === "easy"
+                      ? "bg-green-500/20 text-green-300"
+                      : deployments[0].deploymentIntelligence.migrationReadiness.difficulty === "medium"
+                      ? "bg-yellow-500/20 text-yellow-300"
+                      : "bg-red-500/20 text-red-300"
+                  }`}>
+                    {deployments[0].deploymentIntelligence.migrationReadiness.difficulty.charAt(0).toUpperCase() + deployments[0].deploymentIntelligence.migrationReadiness.difficulty.slice(1)}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Estimated Time</div>
+                  <div className="text-sm font-medium">
+                    {deployments[0].deploymentIntelligence.migrationReadiness.estimatedTime}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">Migration Risks</div>
+                <ul className="space-y-1">
+                  {deployments[0].deploymentIntelligence.migrationReadiness.risks.map((risk, index) => (
+                    <li key={index} className="flex items-start gap-2 text-xs text-muted-foreground">
+                      <span className="flex-shrink-0 w-1 h-1 rounded-full bg-slate-500 mt-1.5" />
+                      <span>{risk}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* AI Reasoning */}
+            <div className="space-y-3">
+              <div className="text-sm font-medium">Why This Recommendation?</div>
+              <ul className="space-y-2">
+                {deployments[0].deploymentIntelligence.reasoning.map((reason, index) => (
+                  <li key={index} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-purple-400 mt-1.5" />
+                    <span>{reason}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="pt-3 border-t border-slate-800">
+              <p className="text-xs text-muted-foreground">
+                This analysis is based on deployment characteristics, provider capabilities, and industry best practices. Actual results may vary based on your specific requirements.
               </p>
             </div>
           </CardContent>
