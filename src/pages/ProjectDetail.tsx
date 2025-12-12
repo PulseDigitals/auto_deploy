@@ -9,11 +9,11 @@ import { Input } from "@/components/ui/input.tsx";
 import { ArrowLeft, Rocket, Globe, GitBranch, Sparkles, Loader2, Package, ExternalLink, DollarSign, TrendingDown, Lightbulb, CheckCircle2, Shield, AlertTriangle, AlertCircle, TrendingUp, Mail, MessageSquare, Bell, Lock, Brain, Activity, Target, Clock, AlertOctagon } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
-import ProviderSelector from "@/components/ProviderSelector.tsx";
 import ProviderInstructions from "@/components/ProviderInstructions.tsx";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 import ArtifactExplorer from "@/components/ArtifactExplorer.tsx";
 import UpgradeModal from "@/components/UpgradeModal.tsx";
+import DeployModal from "@/components/DeployModal.tsx";
 import type { ProviderId } from "@/config/providers.ts";
 import { getProviderConfig } from "@/config/providers.ts";
 import { hasAccess, getRequiredPlan, type SubscriptionPlan } from "@/config/plans.ts";
@@ -109,6 +109,7 @@ type Deployment = {
   _id: string;
   provider: string;
   providerId?: string;
+  deploymentMode?: "simulation" | "live"; // Optional for backward compatibility
   status: string;
   createdAt: number;
   logs?: string[];
@@ -131,7 +132,7 @@ export default function ProjectDetail() {
   const projectId = id as Id<"projects">;
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
-  const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
+  const [deployModalOpen, setDeployModalOpen] = useState(false);
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
   const [newDomain, setNewDomain] = useState("");
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
@@ -159,15 +160,18 @@ export default function ProjectDetail() {
   const updateDomainStatus = useMutation(api.domains.updateDomainStatus);
   const simulateCostDrift = useMutation(api.costGuardrailsPublic.simulateCostDrift);
 
-  const handleDeploy = async () => {
+  const handleDeploy = async (providerId: ProviderId, deploymentMode: "simulation" | "live") => {
     if (!project) return;
     try {
       setIsDeploying(true);
       await createDeployment({
         projectId,
-        providerId: selectedProvider,
+        providerId,
+        deploymentMode,
       });
-      toast.success("Deployment initiated!");
+      const modeLabel = deploymentMode === "live" ? "Live deployment" : "Deployment simulation";
+      toast.success(`${modeLabel} initiated!`);
+      setDeployModalOpen(false);
     } catch (error) {
       toast.error("Failed to create deployment");
     } finally {
@@ -275,7 +279,7 @@ export default function ProjectDetail() {
           </div>
         </div>
 
-        {/* Provider Selection */}
+        {/* Deploy Button */}
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -283,20 +287,15 @@ export default function ProjectDetail() {
               Deploy Project
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <ProviderSelector
-              value={selectedProvider}
-              onChange={setSelectedProvider}
-            />
+          <CardContent>
             <Button 
-              onClick={handleDeploy} 
+              onClick={() => setDeployModalOpen(true)} 
               disabled={isDeploying} 
               className="w-full gap-2"
             >
               <Rocket className="h-4 w-4" />
               {isDeploying ? "Deploying..." : "Deploy Now"}
             </Button>
-            <ProviderInstructions providerId={selectedProvider} />
           </CardContent>
         </Card>
       </div>
@@ -1428,6 +1427,22 @@ export default function ProjectDetail() {
                       {deployment.provider}
                     </span>
 
+                    {/* Mode badge */}
+                    <span
+                      className={`px-2 py-1 text-[10px] rounded-full ${
+                        deployment.deploymentMode === "live"
+                          ? "bg-green-500/20 text-green-300"
+                          : "bg-yellow-500/20 text-yellow-300"
+                      }`}
+                      title={
+                        deployment.deploymentMode === "live"
+                          ? "Real infrastructure created on provider"
+                          : "No real infrastructure created"
+                      }
+                    >
+                      {deployment.deploymentMode === "live" ? "🟢 Live" : "🟡 Simulation"}
+                    </span>
+
                     {/* Status pill */}
                     <span
                       className={`px-2 py-1 text-[10px] rounded-full ${
@@ -1460,6 +1475,15 @@ export default function ProjectDetail() {
           onClose={() => setSelectedDeployment(null)}
         />
       )}
+      
+      <DeployModal
+        open={deployModalOpen}
+        onOpenChange={setDeployModalOpen}
+        onDeploy={handleDeploy}
+        isDeploying={isDeploying}
+        userPlan={userPlan}
+        isPowerUser={currentUser?.isPowerUser || false}
+      />
       
       <UpgradeModal
         open={upgradeModalOpen}

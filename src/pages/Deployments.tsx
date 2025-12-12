@@ -6,6 +6,7 @@ import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 type Deployment = {
   _id: string;
   provider: string;
+  deploymentMode?: "simulation" | "live"; // Optional for backward compatibility
   status: string;
   createdAt: number;
   logs?: string[];
@@ -38,6 +39,20 @@ export default function Deployments() {
               <div className="flex items-center gap-2">
                 <span className="px-2 py-1 text-[10px] rounded-full bg-slate-800 text-slate-200">
                   {d.provider}
+                </span>
+                <span
+                  className={`px-2 py-1 text-[10px] rounded-full ${
+                    d.deploymentMode === "live"
+                      ? "bg-green-500/20 text-green-300"
+                      : "bg-yellow-500/20 text-yellow-300"
+                  }`}
+                  title={
+                    d.deploymentMode === "live"
+                      ? "Real infrastructure created on provider"
+                      : "No real infrastructure created"
+                  }
+                >
+                  {d.deploymentMode === "live" ? "🟢 Live" : "🟡 Simulation"}
                 </span>
                 <span
                   className={`px-2 py-1 text-[10px] rounded-full ${

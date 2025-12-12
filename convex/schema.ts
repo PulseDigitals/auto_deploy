@@ -6,6 +6,7 @@ export default defineSchema({
     tokenIdentifier: v.string(),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
+    isPowerUser: v.optional(v.boolean()), // Power users can access advanced features
     subscription: v.optional(
       v.object({
         plan: v.string(), // "free" | "pro" | "team" | "enterprise"
@@ -26,6 +27,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     provider: v.string(), // Human-readable name e.g. "Vercel"
     providerId: v.optional(v.string()), // "vercel" | "netlify" | "render" | "railway" | "aws"
+    deploymentMode: v.optional(v.union(v.literal("simulation"), v.literal("live"))), // "simulation" | "live" (optional for backward compatibility)
     targetEnvironment: v.optional(v.string()), // e.g. "production"
     url: v.optional(v.string()), // placeholder deployment URL
     createdAt: v.number(),

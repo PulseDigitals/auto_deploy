@@ -29,8 +29,9 @@ export const createDeployment = mutation({
   args: {
     projectId: v.id("projects"),
     providerId: v.string(), // "vercel" | "netlify" | "render" | "railway" | "aws"
+    deploymentMode: v.optional(v.union(v.literal("simulation"), v.literal("live"))), // Default: "simulation"
   },
-  handler: async (ctx, { projectId, providerId }) => {
+  handler: async (ctx, { projectId, providerId, deploymentMode }) => {
     // Map providerId -> provider name (simple mapping for backend safety)
     const providerNameMap: Record<string, string> = {
       vercel: "Vercel",
@@ -41,6 +42,7 @@ export const createDeployment = mutation({
     };
 
     const provider = providerNameMap[providerId] || "Custom";
+    const mode = deploymentMode || "simulation"; // Default to simulation
 
     const now = Date.now();
 
@@ -48,6 +50,7 @@ export const createDeployment = mutation({
       projectId,
       provider,
       providerId,
+      deploymentMode: mode,
       targetEnvironment: "production",
       url: undefined,
       status: "pending",
@@ -245,11 +248,14 @@ export const startDeploymentPipeline = internalMutation({
     }
 
     // Step 10: Final status transition
+    const isSimulation = deployment.deploymentMode === "simulation";
     await ctx.scheduler.runAfter(9000, internal.deployments.updateStatus, {
       deploymentId,
       status: success ? "success" : "failed",
       log: success
-        ? "Deployment completed successfully."
+        ? isSimulation
+          ? "Deployment Simulation Successful"
+          : "Live Deployment Scheduled (Provider authorization required)"
         : "Deployment failed during execution.",
     });
   },
