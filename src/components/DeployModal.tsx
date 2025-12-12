@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Dialog,
@@ -10,8 +12,9 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Switch } from "@/components/ui/switch.tsx";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
-import { AlertTriangle, Rocket, Lock } from "lucide-react";
+import { AlertTriangle, Rocket, Lock, Link2 } from "lucide-react";
 import ProviderSelector from "@/components/ProviderSelector.tsx";
+import { Link } from "react-router-dom";
 import type { ProviderId } from "@/config/providers.ts";
 import { hasAccess, getRequiredPlan, type SubscriptionPlan } from "@/config/plans.ts";
 
@@ -39,6 +42,15 @@ export default function DeployModal({
   // Check if user has access to live deployment
   const canUseLiveDeployment = hasAccess(userPlan, "live_deployment") || isPowerUser;
   const requiredPlan = getRequiredPlan("live_deployment");
+  
+  // Check if provider is connected (only for Vercel currently)
+  const isProviderConnected = useQuery(
+    api.providerAuthHelpers.isProviderConnected,
+    selectedProvider === "vercel" ? { provider: "vercel" } : "skip"
+  );
+  
+  // For live deployment, provider must be connected
+  const hasProviderConnection = selectedProvider === "vercel" ? isProviderConnected : false;
 
   const handleToggleLive = (checked: boolean) => {
     setEnableLiveDeployment(checked);
@@ -56,7 +68,12 @@ export default function DeployModal({
     setConsentChecked(false);
   };
 
-  const canDeploy = !enableLiveDeployment || (enableLiveDeployment && consentChecked);
+  // Can deploy if:
+  // - Not live mode, OR
+  // - Live mode AND consent checked AND (provider not Vercel OR Vercel is connected)
+  const canDeploy = 
+    !enableLiveDeployment || 
+    (enableLiveDeployment && consentChecked && (selectedProvider !== "vercel" || hasProviderConnection));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,8 +136,30 @@ export default function DeployModal({
             )}
           </div>
 
-          {/* Consent Gate (only shown when live deployment is enabled) */}
-          {enableLiveDeployment && canUseLiveDeployment && (
+          {/* Provider Connection Check (for Vercel live deployments) */}
+          {enableLiveDeployment && canUseLiveDeployment && selectedProvider === "vercel" && !hasProviderConnection && (
+            <div className="p-4 rounded-lg bg-blue-500/10 border-2 border-blue-500/30">
+              <div className="flex items-start gap-3">
+                <Link2 className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2 flex-1">
+                  <div className="font-semibold text-blue-200">Provider Connection Required</div>
+                  <p className="text-sm text-blue-200/80">
+                    You must connect your Vercel account before deploying live. This authorizes
+                    the deployment agent to create resources on your behalf.
+                  </p>
+                  <Link to="/dashboard/settings" className="inline-block mt-2">
+                    <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Connect Vercel in Settings
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Consent Gate (only shown when live deployment is enabled and provider connected) */}
+          {enableLiveDeployment && canUseLiveDeployment && (selectedProvider !== "vercel" || hasProviderConnection) && (
             <div className="space-y-4 p-4 rounded-lg bg-orange-500/10 border-2 border-orange-500/30">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />

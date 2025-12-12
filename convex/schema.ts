@@ -152,4 +152,18 @@ export default defineSchema({
     manifest: v.any(),
     createdAt: v.number(),
   }),
+
+  providerConnections: defineTable({
+    userId: v.id("users"),
+    provider: v.string(), // "vercel" | "netlify" | "render" | "railway" | "aws"
+    accessToken: v.string(), // Encrypted access token
+    refreshToken: v.optional(v.string()), // Optional refresh token
+    scopes: v.array(v.string()), // Granted OAuth scopes
+    accountName: v.optional(v.string()), // Provider account name
+    accountEmail: v.optional(v.string()), // Provider account email
+    teamId: v.optional(v.string()), // Team ID (if applicable)
+    teamName: v.optional(v.string()), // Team name (if applicable)
+    connectedAt: v.number(), // Timestamp when connected
+    lastValidatedAt: v.number(), // Last time token was validated
+  }).index("by_user_and_provider", ["userId", "provider"]),
 });

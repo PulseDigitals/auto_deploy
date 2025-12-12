@@ -7,6 +7,7 @@ import ProjectDetail from "./pages/ProjectDetail.tsx";
 import Deployments from "./pages/Deployments.tsx";
 import Settings from "./pages/Settings.tsx";
 import Pricing from "./pages/Pricing.tsx";
+import OAuthCallback from "./pages/auth/OAuthCallback.tsx";
 
 export function AppRouter() {
   return (
@@ -14,6 +15,7 @@ export function AppRouter() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
 
         <Route path="/dashboard" element={<DashboardLayout />}>
           <Route index element={<Dashboard />} />

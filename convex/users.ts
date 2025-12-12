@@ -1,5 +1,5 @@
 import { ConvexError } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 export const updateCurrentUser = mutation({
@@ -95,5 +95,16 @@ export const updateUserPlan = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// Internal query to get user by token
+export const getUserByToken = internalQuery({
+  args: { tokenIdentifier: v.string() },
+  handler: async (ctx, { tokenIdentifier }) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", tokenIdentifier))
+      .unique();
   },
 });

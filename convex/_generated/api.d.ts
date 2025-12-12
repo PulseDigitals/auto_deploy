@@ -20,6 +20,9 @@ import type * as deployments from "../deployments.js";
 import type * as domains from "../domains.js";
 import type * as manifests from "../manifests.js";
 import type * as projects from "../projects.js";
+import type * as providerAuth from "../providerAuth.js";
+import type * as providerAuthHelpers from "../providerAuthHelpers.js";
+import type * as providerAuthPublic from "../providerAuthPublic.js";
 import type * as users from "../users.js";
 import type * as zipUpload from "../zipUpload.js";
 
@@ -42,6 +45,9 @@ declare const fullApi: ApiFromModules<{
   domains: typeof domains;
   manifests: typeof manifests;
   projects: typeof projects;
+  providerAuth: typeof providerAuth;
+  providerAuthHelpers: typeof providerAuthHelpers;
+  providerAuthPublic: typeof providerAuthPublic;
   users: typeof users;
   zipUpload: typeof zipUpload;
 }>;
