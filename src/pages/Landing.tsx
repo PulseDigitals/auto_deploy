@@ -142,6 +142,23 @@ export default function Landing() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Footer */}
+      <div className="border-t border-slate-800">
+        <div className="container mx-auto px-6 py-6">
+          <p className="text-center text-sm text-slate-500">
+            powered by{" "}
+            <a
+              href="https://pulsedigitals.online"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-green-400 hover:text-green-300 transition-colors"
+            >
+              pulsedigitals.online
+            </a>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
