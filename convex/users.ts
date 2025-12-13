@@ -127,8 +127,21 @@ export const isCurrentUserAdmin = query({
   },
 });
 
-// Mutation to toggle admin status (for development/testing only)
-export const toggleAdminStatus = mutation({
+// Query to check if any admin exists in the system
+export const adminExists = query({
+  args: {},
+  handler: async (ctx) => {
+    const admin = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("isAdmin"), true))
+      .first();
+
+    return { exists: !!admin };
+  },
+});
+
+// Bootstrap mutation: allows first authenticated user to become admin (only if no admin exists)
+export const bootstrapAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -151,10 +164,64 @@ export const toggleAdminStatus = mutation({
       });
     }
 
+    // 🔒 Check if an admin already exists
+    const existingAdmin = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("isAdmin"), true))
+      .first();
+
+    if (existingAdmin) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Admin already exists",
+      });
+    }
+
+    // ✅ Promote first admin
     await ctx.db.patch(user._id, {
-      isAdmin: !(user.isAdmin ?? false),
+      isAdmin: true,
     });
 
-    return { isAdmin: !(user.isAdmin ?? false) };
+    return { success: true };
+  },
+});
+
+// Mutation to toggle admin status (admin-only)
+export const toggleAdminStatus = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHENTICATED",
+        message: "User not logged in",
+      });
+    }
+
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!caller || !caller.isAdmin) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Only admins can toggle admin status",
+      });
+    }
+
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
+    await ctx.db.patch(targetUser._id, {
+      isAdmin: !targetUser.isAdmin,
+    });
+
+    return { success: true, isAdmin: !targetUser.isAdmin };
   },
 });

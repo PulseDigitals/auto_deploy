@@ -23,17 +23,33 @@ export default function Projects() {
 
   const projects = useQuery(api.projects.listProjectsByUser, {});
   const isAdmin = useQuery(api.users.isCurrentUserAdmin, {});
+  const adminExistsData = useQuery(api.users.adminExists, {});
+  const currentUser = useQuery(api.users.getCurrentUser, {});
   const systemProject = useQuery(api.projects.getSystemProject, {});
   const platformVersion = useQuery(api.projects.getPlatformVersion, {});
 
+  const bootstrapAdmin = useMutation(api.users.bootstrapAdmin);
   const toggleAdmin = useMutation(api.users.toggleAdminStatus);
   const initializeSystem = useMutation(api.projects.initializeSystemProject);
   const setLatestVersion = useMutation(api.projects.setLatestPlatformVersion);
   const triggerDeploy = useMutation(api.projects.triggerSelfDeploy);
 
-  const handleToggleAdmin = async () => {
+  const handleBootstrapAdmin = async () => {
     try {
-      const result = await toggleAdmin({});
+      await bootstrapAdmin({});
+      toast.success("Admin initialized successfully");
+    } catch (error) {
+      toast.error("Failed to initialize admin");
+    }
+  };
+
+  const handleToggleAdmin = async () => {
+    if (!currentUser?._id) {
+      toast.error("User not found");
+      return;
+    }
+    try {
+      const result = await toggleAdmin({ userId: currentUser._id });
       toast.success(result.isAdmin ? "Admin mode enabled" : "Admin mode disabled");
     } catch (error) {
       toast.error("Failed to toggle admin status");
@@ -93,10 +109,17 @@ export default function Projects() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
-            <Shield className="h-4 w-4" />
-            {isAdmin ? "Disable" : "Enable"} Admin
-          </Button>
+          {!adminExistsData?.exists ? (
+            <Button onClick={handleBootstrapAdmin} variant="default" className="gap-2 border-amber-500 bg-amber-500 hover:bg-amber-600">
+              <Shield className="h-4 w-4" />
+              Initialize Admin
+            </Button>
+          ) : (
+            <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
+              <Shield className="h-4 w-4" />
+              {isAdmin ? "Disable" : "Enable"} Admin
+            </Button>
+          )}
           <Button onClick={() => setShowNewProject(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             New Project
