@@ -2,9 +2,13 @@ import { httpAction } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
 
 // Environment variables
+// CRITICAL: REDIRECT_URI must point to the Convex HTTP Actions endpoint, NOT the Vite app
+// Example:
+//   Local dev: http://localhost:3000/api/oauth/vercel/callback
+//   Production: https://<deployment>.convex.site/api/oauth/vercel/callback
 const VERCEL_CLIENT_ID = process.env.VERCEL_OAUTH_CLIENT_ID || "";
 const VERCEL_CLIENT_SECRET = process.env.VERCEL_OAUTH_CLIENT_SECRET || "";
-const VERCEL_REDIRECT_URI = process.env.VERCEL_OAUTH_REDIRECT_URI || "http://localhost:5173/api/oauth/vercel/callback";
+const VERCEL_REDIRECT_URI = process.env.VERCEL_OAUTH_REDIRECT_URI || "http://localhost:3000/api/oauth/vercel/callback";
 const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:5173";
 
 /**

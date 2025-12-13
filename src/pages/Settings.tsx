@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import { getOAuthStartUrl } from "@/lib/convex-http.ts";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -58,10 +59,13 @@ export default function Settings() {
   }, [searchParams, setSearchParams]);
   
   const handleConnectVercel = () => {
-    // CRITICAL: OAuth must be initiated via HTTP redirect, NOT Convex action
-    // This redirects to /api/oauth/vercel/start which is handled by HTTP router
+    // CRITICAL: OAuth must be initiated via full HTTP redirect to Convex HTTP Actions
+    // HTTP Actions are deployed on Convex domain (e.g., https://<deployment>.convex.site)
+    // NOT on the Vite app domain
     setIsConnecting(true);
-    window.location.href = "/api/oauth/vercel/start";
+    const oauthUrl = getOAuthStartUrl("vercel");
+    console.log("Redirecting to Vercel OAuth:", oauthUrl);
+    window.location.href = oauthUrl;
   };
   
   const handleDisconnect = async (provider: string) => {
