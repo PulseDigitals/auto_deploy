@@ -26,6 +26,8 @@ interface DeployModalProps {
   isDeploying: boolean;
   userPlan: SubscriptionPlan;
   isPowerUser?: boolean;
+  isSystemProject?: boolean;
+  isAdmin?: boolean;
 }
 
 export default function DeployModal({
@@ -35,13 +37,19 @@ export default function DeployModal({
   isDeploying,
   userPlan,
   isPowerUser = false,
+  isSystemProject = false,
+  isAdmin = false,
 }: DeployModalProps) {
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
   const [enableLiveDeployment, setEnableLiveDeployment] = useState(false);
   const [consentChecked, setConsentChecked] = useState(false);
 
   // Check if user has access to live deployment
-  const canUseLiveDeployment = hasAccess(userPlan, "live_deployment") || isPowerUser;
+  // ADMIN OVERRIDE: Allow live deployment for system projects
+  const canUseLiveDeployment = 
+    hasAccess(userPlan, "live_deployment") || 
+    isPowerUser || 
+    (isSystemProject && isAdmin);
   const requiredPlan = getRequiredPlan("live_deployment");
   
   // Check if provider is connected (only for Vercel currently)
@@ -115,7 +123,9 @@ export default function DeployModal({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live
+                  {isSystemProject && isAdmin
+                    ? "Admin-only system deployment. Billing is bypassed for platform self-deployments."
+                    : PROVIDERS.find((p) => p.id === selectedProvider)?.capabilities.live
                     ? "Requires provider authorization. Charges may apply."
                     : "Live deployment coming soon for this provider"}
                 </p>

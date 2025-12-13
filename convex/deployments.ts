@@ -35,6 +35,50 @@ export const createDeployment = mutation({
     // CRITICAL: All deployments flow through the provider registry
     // This is the single source of truth for deployment execution
     
+    const identity = await ctx.auth.getUserIdentity();
+    const project = await ctx.db.get(projectId);
+    
+    if (!project) {
+      throw new Error("NOT_FOUND: Project not found");
+    }
+
+    // Check if user is admin
+    let isAdmin = false;
+    let user = null;
+    if (identity) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+        .unique();
+      isAdmin = user?.isAdmin ?? false;
+    }
+
+    // ADMIN OVERRIDE: Allow live deployment for system projects without plan check
+    const isSystemProject = project.isSystemProject ?? false;
+    const mode = deploymentMode || "simulation";
+    
+    // Authorization for live deployment
+    if (mode === "live") {
+      // System Project + Admin = BYPASS PLAN CHECK
+      if (isSystemProject && !isAdmin) {
+        throw new Error("FORBIDDEN: Only admins can deploy system projects");
+      }
+      
+      // For non-system projects, validate subscription plan
+      if (!isSystemProject) {
+        if (!user?.subscription) {
+          throw new Error("FORBIDDEN: Live deployment requires a subscription");
+        }
+        
+        const userPlan = user.subscription.plan;
+        const hasAccess = userPlan === "pro" || userPlan === "team" || userPlan === "enterprise";
+        
+        if (!hasAccess) {
+          throw new Error("FORBIDDEN: Live deployment requires Pro plan or higher");
+        }
+      }
+    }
+    
     // Map providerId -> provider name (simple mapping for display)
     const providerNameMap: Record<string, string> = {
       vercel: "Vercel",
@@ -45,9 +89,10 @@ export const createDeployment = mutation({
     };
 
     const provider = providerNameMap[providerId] || "Custom";
-    const mode = deploymentMode || "simulation"; // Default to simulation
-
     const now = Date.now();
+
+    // Determine if this is a self-deployment
+    const isSelfDeployment = isSystemProject && isAdmin;
 
     const deploymentId = await ctx.db.insert("deployments", {
       projectId,
@@ -59,7 +104,11 @@ export const createDeployment = mutation({
       status: "pending",
       createdAt: now,
       updatedAt: now,
-      logs: [],
+      logs: isSelfDeployment 
+        ? [`[${new Date(now).toISOString()}] System self-deployment initiated by admin (billing bypassed)`]
+        : [],
+      isSelfDeployment,
+      platformVersion: isSelfDeployment ? (project.latestAvailableVersion ?? "v1.0.0") : undefined,
     });
 
     // Immediately trigger provider-agnostic deployment pipeline

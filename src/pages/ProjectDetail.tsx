@@ -144,6 +144,7 @@ export default function ProjectDetail() {
   const [upgradeFeature, setUpgradeFeature] = useState({ name: "", plan: "" });
 
   const currentUser = useQuery(api.users.getCurrentUser);
+  const isAdmin = useQuery(api.users.isCurrentUserAdmin);
   const project = useQuery(api.projects.getProject, { projectId });
   const deployments = useQuery(api.deployments.listDeploymentsByProject, {
     projectId,
@@ -1515,6 +1516,8 @@ export default function ProjectDetail() {
         isDeploying={isDeploying}
         userPlan={userPlan}
         isPowerUser={currentUser?.isPowerUser || false}
+        isSystemProject={project?.isSystemProject || false}
+        isAdmin={isAdmin || false}
       />
       
       <UpgradeModal
