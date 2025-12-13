@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Plus, Shield, Rocket } from "lucide-react";
@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { SignInButton } from "@/components/ui/signin.tsx";
 import { toast } from "sonner";
 
-export default function Projects() {
+function ProjectsContent() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [showVersionInput, setShowVersionInput] = useState(false);
   const [newVersion, setNewVersion] = useState("");
@@ -276,5 +278,45 @@ export default function Projects() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function Projects() {
+  return (
+    <>
+      <AuthLoading>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Projects</h1>
+              <p className="text-muted-foreground mt-2">
+                Manage your deployment projects
+              </p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        </div>
+      </AuthLoading>
+
+      <Unauthenticated>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold">Projects</h1>
+            <p className="text-muted-foreground">
+              Sign in to manage your deployment projects
+            </p>
+          </div>
+          <SignInButton />
+        </div>
+      </Unauthenticated>
+
+      <Authenticated>
+        <ProjectsContent />
+      </Authenticated>
+    </>
   );
 }
