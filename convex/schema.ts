@@ -17,6 +17,7 @@ export default defineSchema({
     ),
   })
     .index("by_token", ["tokenIdentifier"])
+    .index("by_email", ["email"])
     .index("by_isAdmin", ["isAdmin"]),
 
   projects: defineTable({

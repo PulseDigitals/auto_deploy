@@ -45,7 +45,7 @@ function ProjectsContent() {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes("ADMIN_ALREADY_BOOTSTRAPPED") || errorMessage.includes("Admin already exists")) {
-        toast.error("Admin already exists in the system");
+        toast.info("Admin already exists");
       } else if (errorMessage.includes("UNAUTHENTICATED")) {
         toast.error("Please log in to initialize admin");
       } else if (errorMessage.includes("USER_NOT_FOUND") || errorMessage.includes("User not found")) {

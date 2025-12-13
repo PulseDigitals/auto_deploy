@@ -52,12 +52,22 @@ export const getCurrentUser = query({
     if (!identity) {
       return null;
     }
-    const user = await ctx.db
+    
+    // Try token first (faster), fallback to email
+    let user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) =>
         q.eq("tokenIdentifier", identity.tokenIdentifier),
       )
       .unique();
+
+    if (!user && identity.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", identity.email))
+        .first();
+    }
+
     return user;
   },
 });
@@ -114,14 +124,22 @@ export const isCurrentUserAdmin = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    if (!identity?.email) {
       return false;
     }
 
-    const user = await ctx.db
+    // Try token first (faster), fallback to email
+    let user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
+
+    if (!user && identity.email) {
+      user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", identity.email))
+        .first();
+    }
 
     return Boolean(user?.isAdmin);
   },
@@ -142,32 +160,48 @@ export const adminExists = query({
 });
 
 // Bootstrap mutation: allows first authenticated user to become admin (only if no admin exists)
-// This is idempotent and race-condition safe
+// This is idempotent and race-condition safe with automatic user row creation (upsert)
 export const bootstrapAdmin = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    if (!identity?.email) {
       throw new ConvexError({
         code: "UNAUTHENTICATED",
         message: "User not logged in",
       });
     }
 
-    // Find current user
-    const user = await ctx.db
+    /* STEP 1: Ensure user row exists (UPSERT) */
+    let user = await ctx.db
       .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
+      .withIndex("by_email", (q) => q.eq("email", identity.email))
+      .first();
 
     if (!user) {
-      throw new ConvexError({
-        code: "NOT_FOUND",
-        message: "User not found",
+      // Create user row if it doesn't exist
+      const userId = await ctx.db.insert("users", {
+        tokenIdentifier: identity.tokenIdentifier,
+        email: identity.email,
+        name: identity.name ?? undefined,
+        isAdmin: false,
+        adminBootstrapped: false,
+        subscription: {
+          plan: "free",
+          activatedAt: Date.now(),
+        },
       });
+
+      user = await ctx.db.get(userId);
+      if (!user) {
+        throw new ConvexError({
+          code: "NOT_FOUND",
+          message: "Failed to create user",
+        });
+      }
     }
 
-    // 🔒 Check if an admin already exists using the efficient index
+    /* STEP 2: Check if admin already exists */
     const existingAdmin = await ctx.db
       .query("users")
       .withIndex("by_isAdmin", (q) => q.eq("isAdmin", true))
@@ -180,7 +214,7 @@ export const bootstrapAdmin = mutation({
       });
     }
 
-    // ✅ Promote first admin with bootstrap flag
+    /* STEP 3: Promote current user to admin */
     await ctx.db.patch(user._id, {
       isAdmin: true,
       adminBootstrapped: true,
