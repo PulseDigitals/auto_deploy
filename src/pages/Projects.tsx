@@ -124,150 +124,167 @@ function ProjectsContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your deployment projects
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {!adminExistsData?.exists ? (
-            <Button onClick={handleBootstrapAdmin} variant="default" className="gap-2 border-amber-500 bg-amber-500 hover:bg-amber-600">
-              <Shield className="h-4 w-4" />
-              Initialize Admin
-            </Button>
-          ) : (
-            <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
-              <Shield className="h-4 w-4" />
-              {isAdmin ? "Disable" : "Enable"} Admin
-            </Button>
-          )}
-          <Button onClick={() => setShowNewProject(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-      </div>
-
-      {isAdmin && (
-        <Card className="border-amber-500/50 bg-amber-950/20">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-amber-500" />
-              System Administration
-              <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">
-                Admin Only
-              </Badge>
-            </CardTitle>
-            <CardDescription>
-              Manage system-level projects and self-deployment
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!systemProject ? (
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">System Project</p>
-                  <p className="text-xs text-muted-foreground">
-                    Initialize the system project for self-deployment
-                  </p>
-                </div>
-                <Button onClick={handleInitializeSystem} size="sm" className="gap-2">
-                  <Rocket className="h-4 w-4" />
-                  Initialize
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">Projects</h1>
+              <p className="text-muted-foreground mt-2">
+                Manage your deployment projects
+              </p>
+            </div>
+            <div className="flex gap-2">
+              {!adminExistsData?.exists ? (
+                <Button onClick={handleBootstrapAdmin} variant="default" className="gap-2 border-amber-500 bg-amber-500 hover:bg-amber-600">
+                  <Shield className="h-4 w-4" />
+                  Initialize Admin
                 </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{systemProject.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {systemProject.description}
-                    </p>
-                  </div>
-                  <Badge variant="secondary" className="gap-1">
-                    <Shield className="h-3 w-3" />
-                    System
+              ) : (
+                <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
+                  <Shield className="h-4 w-4" />
+                  {isAdmin ? "Disable" : "Enable"} Admin
+                </Button>
+              )}
+              <Button onClick={() => setShowNewProject(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Project
+              </Button>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <Card className="border-amber-500/50 bg-amber-950/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-amber-500" />
+                  System Administration
+                  <Badge variant="outline" className="ml-2 border-amber-500 text-amber-500">
+                    Admin Only
                   </Badge>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Provider: {systemProject.providerPreference} · Environment: {systemProject.environment}
-                </div>
-
-                {/* Platform Deployment Section */}
-                {platformVersion && (
-                  <div className="border-t pt-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium">Platform Deployment</p>
-                      {platformVersion.updateAvailable ? (
-                        <Badge variant="outline" className="border-amber-500 text-amber-500">
-                          Update Available
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="border-green-500 text-green-500">
-                          Up to Date
-                        </Badge>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="text-muted-foreground text-xs">Running Version</p>
-                        <p className="font-mono">{platformVersion.currentVersion}</p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs">Latest Version</p>
-                        <p className="font-mono">{platformVersion.latestAvailableVersion}</p>
-                      </div>
-                    </div>
-
-                    {platformVersion.lastSelfDeployAt && (
+                </CardTitle>
+                <CardDescription>
+                  Manage system-level projects and self-deployment
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!systemProject ? (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">System Project</p>
                       <p className="text-xs text-muted-foreground">
-                        Last deployed: {new Date(platformVersion.lastSelfDeployAt).toLocaleString()}
+                        Initialize the system project for self-deployment
                       </p>
-                    )}
-
-                    <div className="flex gap-2">
-                      {platformVersion.updateAvailable && (
-                        <Button onClick={handleDeployPlatform} size="sm" className="gap-2">
-                          <Rocket className="h-4 w-4" />
-                          Deploy Platform Update
-                        </Button>
-                      )}
-                      <Button 
-                        onClick={() => setShowVersionInput(!showVersionInput)} 
-                        variant="outline" 
-                        size="sm"
-                      >
-                        Simulate New Version
-                      </Button>
+                    </div>
+                    <Button onClick={handleInitializeSystem} size="sm" className="gap-2">
+                      <Rocket className="h-4 w-4" />
+                      Initialize
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">{systemProject.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {systemProject.description}
+                        </p>
+                      </div>
+                      <Badge variant="secondary" className="gap-1">
+                        <Shield className="h-3 w-3" />
+                        System
+                      </Badge>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Provider: {systemProject.providerPreference} · Environment: {systemProject.environment}
                     </div>
 
-                    {showVersionInput && (
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={newVersion}
-                          onChange={(e) => setNewVersion(e.target.value)}
-                          placeholder="e.g., v1.2.0"
-                          className="flex-1 px-3 py-1 text-sm border rounded-md bg-background"
-                        />
-                        <Button onClick={handleSetNewVersion} size="sm">
-                          Set
-                        </Button>
+                    {/* Platform Deployment Section */}
+                    {platformVersion && (
+                      <div className="border-t pt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">Platform Deployment</p>
+                          {platformVersion.updateAvailable ? (
+                            <Badge variant="outline" className="border-amber-500 text-amber-500">
+                              Update Available
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-green-500 text-green-500">
+                              Up to Date
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-muted-foreground text-xs">Running Version</p>
+                            <p className="font-mono">{platformVersion.currentVersion}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Latest Version</p>
+                            <p className="font-mono">{platformVersion.latestAvailableVersion}</p>
+                          </div>
+                        </div>
+
+                        {platformVersion.lastSelfDeployAt && (
+                          <p className="text-xs text-muted-foreground">
+                            Last deployed: {new Date(platformVersion.lastSelfDeployAt).toLocaleString()}
+                          </p>
+                        )}
+
+                        <div className="flex gap-2">
+                          {platformVersion.updateAvailable && (
+                            <Button onClick={handleDeployPlatform} size="sm" className="gap-2">
+                              <Rocket className="h-4 w-4" />
+                              Deploy Platform Update
+                            </Button>
+                          )}
+                          <Button 
+                            onClick={() => setShowVersionInput(!showVersionInput)} 
+                            variant="outline" 
+                            size="sm"
+                          >
+                            Simulate New Version
+                          </Button>
+                        </div>
+
+                        {showVersionInput && (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newVersion}
+                              onChange={(e) => setNewVersion(e.target.value)}
+                              placeholder="e.g., v1.2.0"
+                              className="flex-1 px-3 py-1 text-sm border rounded-md bg-background"
+                            />
+                            <Button onClick={handleSetNewVersion} size="sm">
+                              Set
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
+          )}
 
-      <ProjectList projects={projects} />
+          <ProjectList projects={projects} />
+        </div>
+
+        {/* Right Column - Hero Image */}
+        <div className="hidden lg:block sticky top-6">
+          <Card className="border-green-500/20 bg-gradient-to-br from-slate-900 to-slate-950 overflow-hidden">
+            <CardContent className="p-0">
+              <img 
+                src="https://cdn.hercules.app/file_jGbmedkcQ2jUKcfpAyzXeaBi" 
+                alt="From Build to Live"
+                className="w-full h-auto"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <Dialog open={showNewProject} onOpenChange={setShowNewProject}>
         <DialogContent>
