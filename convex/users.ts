@@ -123,7 +123,7 @@ export const isCurrentUserAdmin = query({
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
-    return user?.isAdmin ?? false;
+    return Boolean(user?.isAdmin);
   },
 });
 
@@ -131,9 +131,10 @@ export const isCurrentUserAdmin = query({
 export const adminExists = query({
   args: {},
   handler: async (ctx) => {
+    // Use the new index for efficient admin lookup
     const admin = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("isAdmin"), true))
+      .withIndex("by_isAdmin", (q) => q.eq("isAdmin", true))
       .first();
 
     return { exists: !!admin };
@@ -141,6 +142,7 @@ export const adminExists = query({
 });
 
 // Bootstrap mutation: allows first authenticated user to become admin (only if no admin exists)
+// This is idempotent and race-condition safe
 export const bootstrapAdmin = mutation({
   args: {},
   handler: async (ctx) => {
@@ -152,6 +154,7 @@ export const bootstrapAdmin = mutation({
       });
     }
 
+    // Find current user
     const user = await ctx.db
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
@@ -164,22 +167,23 @@ export const bootstrapAdmin = mutation({
       });
     }
 
-    // 🔒 Check if an admin already exists
+    // 🔒 Check if an admin already exists using the efficient index
     const existingAdmin = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("isAdmin"), true))
+      .withIndex("by_isAdmin", (q) => q.eq("isAdmin", true))
       .first();
 
     if (existingAdmin) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "Admin already exists",
+        message: "Admin already exists - bootstrap can only be done once",
       });
     }
 
-    // ✅ Promote first admin
+    // ✅ Promote first admin with bootstrap flag
     await ctx.db.patch(user._id, {
       isAdmin: true,
+      adminBootstrapped: true,
     });
 
     return { success: true };
@@ -198,18 +202,20 @@ export const toggleAdminStatus = mutation({
       });
     }
 
+    // Verify caller is an admin
     const caller = await ctx.db
       .query("users")
       .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
       .unique();
 
-    if (!caller || !caller.isAdmin) {
+    if (!caller?.isAdmin) {
       throw new ConvexError({
         code: "FORBIDDEN",
         message: "Only admins can toggle admin status",
       });
     }
 
+    // Get target user
     const targetUser = await ctx.db.get(userId);
     if (!targetUser) {
       throw new ConvexError({
@@ -218,10 +224,12 @@ export const toggleAdminStatus = mutation({
       });
     }
 
+    // Toggle admin status
+    const newAdminStatus = !targetUser.isAdmin;
     await ctx.db.patch(targetUser._id, {
-      isAdmin: !targetUser.isAdmin,
+      isAdmin: newAdminStatus,
     });
 
-    return { success: true, isAdmin: !targetUser.isAdmin };
+    return { success: true, isAdmin: newAdminStatus };
   },
 });

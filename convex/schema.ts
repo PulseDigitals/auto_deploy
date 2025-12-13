@@ -8,13 +8,16 @@ export default defineSchema({
     email: v.optional(v.string()),
     isPowerUser: v.optional(v.boolean()), // Power users can access advanced features
     isAdmin: v.optional(v.boolean()), // Admin users can access system projects
+    adminBootstrapped: v.optional(v.boolean()), // Tracks if this user bootstrapped as first admin
     subscription: v.optional(
       v.object({
         plan: v.string(), // "free" | "pro" | "team" | "enterprise"
         activatedAt: v.number(),
       })
     ),
-  }).index("by_token", ["tokenIdentifier"]),
+  })
+    .index("by_token", ["tokenIdentifier"])
+    .index("by_isAdmin", ["isAdmin"]),
 
   projects: defineTable({
     name: v.string(),

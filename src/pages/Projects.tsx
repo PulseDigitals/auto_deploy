@@ -39,7 +39,19 @@ export default function Projects() {
       await bootstrapAdmin({});
       toast.success("Admin initialized successfully");
     } catch (error) {
-      toast.error("Failed to initialize admin");
+      // Handle specific error cases
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes("ADMIN_ALREADY_BOOTSTRAPPED") || errorMessage.includes("Admin already exists")) {
+        toast.error("Admin already exists in the system");
+      } else if (errorMessage.includes("UNAUTHENTICATED")) {
+        toast.error("Please log in to initialize admin");
+      } else if (errorMessage.includes("USER_NOT_FOUND") || errorMessage.includes("User not found")) {
+        toast.error("User account not found - please refresh and try again");
+      } else {
+        toast.error("Failed to initialize admin - please try again");
+      }
+      console.error("Bootstrap admin error:", error);
     }
   };
 
@@ -52,7 +64,16 @@ export default function Projects() {
       const result = await toggleAdmin({ userId: currentUser._id });
       toast.success(result.isAdmin ? "Admin mode enabled" : "Admin mode disabled");
     } catch (error) {
-      toast.error("Failed to toggle admin status");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      if (errorMessage.includes("FORBIDDEN")) {
+        toast.error("Only admins can toggle admin status");
+      } else if (errorMessage.includes("UNAUTHENTICATED")) {
+        toast.error("Please log in to change admin status");
+      } else {
+        toast.error("Failed to toggle admin status");
+      }
+      console.error("Toggle admin error:", error);
     }
   };
 
