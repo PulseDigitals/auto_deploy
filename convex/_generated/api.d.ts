@@ -21,6 +21,7 @@ import type * as domains from "../domains.js";
 import type * as http from "../http.js";
 import type * as manifests from "../manifests.js";
 import type * as oauth_vercel from "../oauth/vercel.js";
+import type * as platformReleases from "../platformReleases.js";
 import type * as projects from "../projects.js";
 import type * as providerAuthHelpers from "../providerAuthHelpers.js";
 import type * as providerTokens from "../providerTokens.js";
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   manifests: typeof manifests;
   "oauth/vercel": typeof oauth_vercel;
+  platformReleases: typeof platformReleases;
   projects: typeof projects;
   providerAuthHelpers: typeof providerAuthHelpers;
   providerTokens: typeof providerTokens;

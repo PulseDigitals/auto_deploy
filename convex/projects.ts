@@ -1,5 +1,6 @@
 import { query, mutation, internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api.js";
+import type { Id } from "./_generated/dataModel.d.ts";
 import { v } from "convex/values";
 
 export const listProjectsByUser = query({
@@ -237,28 +238,14 @@ export const setLatestPlatformVersion = mutation({
   },
 });
 
-// Mutation to trigger self-deployment (admin-only, uses existing deployment pipeline)
-export const triggerSelfDeploy = mutation({
+// Internal mutation to trigger self-deployment (can be called from other mutations)
+export const _internalTriggerSelfDeploy = internalMutation({
   args: {
     provider: v.string(),
     providerId: v.string(),
     mode: v.union(v.literal("simulation"), v.literal("live")),
   },
-  handler: async (ctx, { provider, providerId, mode }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("UNAUTHENTICATED: User not logged in");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user?.isAdmin) {
-      throw new Error("FORBIDDEN: Admin access required");
-    }
-
+  handler: async (ctx, { provider, providerId, mode }): Promise<{ deploymentId: Id<"deployments">; systemProjectId: Id<"projects"> }> => {
     // Get the system project
     const systemProject = await ctx.db
       .query("projects")
@@ -295,5 +282,36 @@ export const triggerSelfDeploy = mutation({
     });
 
     return { deploymentId, systemProjectId: systemProject._id };
+  },
+});
+
+// Mutation to trigger self-deployment (admin-only, uses existing deployment pipeline)
+export const triggerSelfDeploy = mutation({
+  args: {
+    provider: v.string(),
+    providerId: v.string(),
+    mode: v.union(v.literal("simulation"), v.literal("live")),
+  },
+  handler: async (ctx, { provider, providerId, mode }): Promise<{ deploymentId: Id<"deployments">; systemProjectId: Id<"projects"> }> => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("UNAUTHENTICATED: User not logged in");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user?.isAdmin) {
+      throw new Error("FORBIDDEN: Admin access required");
+    }
+
+    // Call internal version
+    return await ctx.runMutation(internal.projects._internalTriggerSelfDeploy, {
+      provider,
+      providerId,
+      mode,
+    });
   },
 });

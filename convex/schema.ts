@@ -33,6 +33,13 @@ export default defineSchema({
     repositoryUrl: v.optional(v.string()), // GitHub URL (read-only for now)
     autoDeployEnabled: v.optional(v.boolean()), // default false
     lastSelfDeployAt: v.optional(v.number()), // timestamp of last self-deployment
+    autoDeployOnRelease: v.optional(v.boolean()), // default false - auto-deploy when new release detected
+    releaseChannel: v.optional(v.union(v.literal("stable"), v.literal("beta"))), // default "stable"
+    releaseSource: v.optional(v.union(v.literal("manual"), v.literal("github"))), // default "manual"
+    lastReleaseCheckAt: v.optional(v.number()), // timestamp of last release check
+    lastReleaseDetectedAt: v.optional(v.number()), // timestamp of last detected release
+    lastDetectedReleaseVersion: v.optional(v.string()), // last detected release version
+    releaseNotes: v.optional(v.string()), // short text, optional
   }).index("by_isSystemProject", ["isSystemProject"]),
 
   deployments: defineTable({
@@ -156,6 +163,20 @@ export default defineSchema({
     blockedReason: v.optional(v.string()), // "upgrade_required" | null
     createdAt: v.number(),
   }).index("by_deployment", ["deploymentId"]),
+
+  platformReleases: defineTable({
+    version: v.string(),
+    channel: v.union(v.literal("stable"), v.literal("beta")),
+    source: v.union(v.literal("manual"), v.literal("github")),
+    notes: v.optional(v.string()),
+    detectedAt: v.number(),
+    detectedByUserId: v.optional(v.id("users")),
+    status: v.string(), // "detected" | "queued" | "deployed" | "skipped" | "failed"
+    deploymentId: v.optional(v.id("deployments")),
+  })
+    .index("by_version", ["version"])
+    .index("by_detectedAt", ["detectedAt"])
+    .index("by_status", ["status"]),
 
   domains: defineTable({
     projectId: v.id("projects"),

@@ -334,5 +334,14 @@ export const updateSystemProjectAfterSelfDeploy = internalMutation({
       currentVersion: deployment.platformVersion,
       lastSelfDeployAt: Date.now(),
     });
+
+    // Mark the release as deployed
+    if (deployment.platformVersion) {
+      await ctx.scheduler.runAfter(0, internal.platformReleases.markReleaseDeployed, {
+        version: deployment.platformVersion,
+        deploymentId: deployment._id,
+        success: deployment.status === "success",
+      });
+    }
   },
 });
