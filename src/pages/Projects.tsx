@@ -277,8 +277,8 @@ function ProjectsContent() {
           <Card className="border-green-500/20 bg-gradient-to-br from-slate-900 to-slate-950 overflow-hidden">
             <CardContent className="p-0">
               <img 
-                src="https://cdn.hercules.app/file_jGbmedkcQ2jUKcfpAyzXeaBi" 
-                alt="From Build to Live"
+                src="https://cdn.hercules.app/file_O33X4OnMSMU8dN8dTEz6ez24" 
+                alt="From Build to Live - Auto Deploy in One Click"
                 className="w-full h-auto"
               />
             </CardContent>
