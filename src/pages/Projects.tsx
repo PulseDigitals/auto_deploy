@@ -17,13 +17,19 @@ import { toast } from "sonner";
 
 export default function Projects() {
   const [showNewProject, setShowNewProject] = useState(false);
+  const [showVersionInput, setShowVersionInput] = useState(false);
+  const [newVersion, setNewVersion] = useState("");
+  const [showDeployModal, setShowDeployModal] = useState(false);
 
   const projects = useQuery(api.projects.listProjectsByUser, {});
   const isAdmin = useQuery(api.users.isCurrentUserAdmin, {});
   const systemProject = useQuery(api.projects.getSystemProject, {});
+  const platformVersion = useQuery(api.projects.getPlatformVersion, {});
 
   const toggleAdmin = useMutation(api.users.toggleAdminStatus);
   const initializeSystem = useMutation(api.projects.initializeSystemProject);
+  const setLatestVersion = useMutation(api.projects.setLatestPlatformVersion);
+  const triggerDeploy = useMutation(api.projects.triggerSelfDeploy);
 
   const handleToggleAdmin = async () => {
     try {
@@ -40,6 +46,40 @@ export default function Projects() {
       toast.success("System project initialized");
     } catch (error) {
       toast.error("Failed to initialize system project");
+    }
+  };
+
+  const handleSetNewVersion = async () => {
+    if (!newVersion) {
+      toast.error("Please enter a version");
+      return;
+    }
+    try {
+      await setLatestVersion({ version: newVersion });
+      toast.success(`Latest version set to ${newVersion}`);
+      setShowVersionInput(false);
+      setNewVersion("");
+    } catch (error) {
+      toast.error("Failed to set version");
+    }
+  };
+
+  const handleDeployPlatform = async () => {
+    if (!systemProject) {
+      toast.error("System project not found");
+      return;
+    }
+    try {
+      // Deploy to Vercel in simulation mode by default
+      await triggerDeploy({
+        provider: "Vercel",
+        providerId: "vercel",
+        mode: "simulation",
+      });
+      toast.success("Platform deployment started");
+      setShowDeployModal(false);
+    } catch (error) {
+      toast.error("Failed to start deployment");
     }
   };
 
@@ -93,7 +133,7 @@ export default function Projects() {
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{systemProject.name}</p>
@@ -109,6 +149,72 @@ export default function Projects() {
                 <div className="text-xs text-muted-foreground">
                   Provider: {systemProject.providerPreference} · Environment: {systemProject.environment}
                 </div>
+
+                {/* Platform Deployment Section */}
+                {platformVersion && (
+                  <div className="border-t pt-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">Platform Deployment</p>
+                      {platformVersion.updateAvailable ? (
+                        <Badge variant="outline" className="border-amber-500 text-amber-500">
+                          Update Available
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-green-500 text-green-500">
+                          Up to Date
+                        </Badge>
+                      )}
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs">Running Version</p>
+                        <p className="font-mono">{platformVersion.currentVersion}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs">Latest Version</p>
+                        <p className="font-mono">{platformVersion.latestAvailableVersion}</p>
+                      </div>
+                    </div>
+
+                    {platformVersion.lastSelfDeployAt && (
+                      <p className="text-xs text-muted-foreground">
+                        Last deployed: {new Date(platformVersion.lastSelfDeployAt).toLocaleString()}
+                      </p>
+                    )}
+
+                    <div className="flex gap-2">
+                      {platformVersion.updateAvailable && (
+                        <Button onClick={handleDeployPlatform} size="sm" className="gap-2">
+                          <Rocket className="h-4 w-4" />
+                          Deploy Platform Update
+                        </Button>
+                      )}
+                      <Button 
+                        onClick={() => setShowVersionInput(!showVersionInput)} 
+                        variant="outline" 
+                        size="sm"
+                      >
+                        Simulate New Version
+                      </Button>
+                    </div>
+
+                    {showVersionInput && (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newVersion}
+                          onChange={(e) => setNewVersion(e.target.value)}
+                          placeholder="e.g., v1.2.0"
+                          className="flex-1 px-3 py-1 text-sm border rounded-md bg-background"
+                        />
+                        <Button onClick={handleSetNewVersion} size="sm">
+                          Set
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

@@ -2,6 +2,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { useState } from "react";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
+import { Rocket } from "lucide-react";
 
 type Deployment = {
   _id: string;
@@ -10,6 +11,8 @@ type Deployment = {
   status: string;
   createdAt: number;
   logs?: string[];
+  platformVersion?: string;
+  isSelfDeployment?: boolean;
 };
 
 export default function Deployments() {
@@ -28,8 +31,21 @@ export default function Deployments() {
               className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between bg-slate-900 rounded-lg px-4 py-3"
             >
               <div>
-                <div className="text-sm font-medium">
-                  {d.provider} – {d.status}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">
+                    {d.provider} – {d.status}
+                  </span>
+                  {d.isSelfDeployment && (
+                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                      <Rocket className="h-2.5 w-2.5" />
+                      Self Deployment
+                    </span>
+                  )}
+                  {d.platformVersion && (
+                    <span className="px-2 py-0.5 text-[10px] rounded-full bg-purple-500/20 text-purple-300 font-mono">
+                      {d.platformVersion}
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-slate-400">
                   {new Date(d.createdAt).toLocaleString()}

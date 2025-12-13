@@ -303,5 +303,36 @@ export const executeSimulationPipeline = internalMutation({
         ? "🟡 Deployment Simulation Successful"
         : "Deployment failed during execution.",
     });
+
+    // Step 11: Update system project if self-deployment succeeded
+    if (success) {
+      await ctx.scheduler.runAfter(9500, internal.deployments.updateSystemProjectAfterSelfDeploy, {
+        deploymentId,
+      });
+    }
+  },
+});
+
+// Internal mutation to update system project after successful self-deployment
+export const updateSystemProjectAfterSelfDeploy = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+  },
+  handler: async (ctx, { deploymentId }) => {
+    const deployment = await ctx.db.get(deploymentId);
+    if (!deployment) return;
+
+    // Only proceed if this is a self-deployment
+    if (!deployment.isSelfDeployment) return;
+
+    // Get the project
+    const project = await ctx.db.get(deployment.projectId);
+    if (!project || !project.isSystemProject) return;
+
+    // Update the project's current version to the deployed platform version
+    await ctx.db.patch(deployment.projectId, {
+      currentVersion: deployment.platformVersion,
+      lastSelfDeployAt: Date.now(),
+    });
   },
 });

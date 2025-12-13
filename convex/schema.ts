@@ -28,6 +28,11 @@ export default defineSchema({
     providerPreference: v.optional(v.string()), // Preferred provider for system project
     environment: v.optional(v.string()), // Target environment for system project
     description: v.optional(v.string()), // Description for system project
+    currentVersion: v.optional(v.string()), // e.g. "v1.3.2"
+    latestAvailableVersion: v.optional(v.string()), // e.g. "v1.4.0"
+    repositoryUrl: v.optional(v.string()), // GitHub URL (read-only for now)
+    autoDeployEnabled: v.optional(v.boolean()), // default false
+    lastSelfDeployAt: v.optional(v.number()), // timestamp of last self-deployment
   }).index("by_isSystemProject", ["isSystemProject"]),
 
   deployments: defineTable({
@@ -137,6 +142,8 @@ export default defineSchema({
         generated: v.boolean(), // true if real AI, false if fallback
       })
     ),
+    platformVersion: v.optional(v.string()), // version deployed during this run
+    isSelfDeployment: v.optional(v.boolean()), // true if this is a self-deployment
   }).index("by_projectId", ["projectId"]),
 
   alertHistory: defineTable({

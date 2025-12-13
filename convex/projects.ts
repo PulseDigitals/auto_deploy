@@ -83,8 +83,9 @@ export const seedSystemProject = internalMutation({
       return existingSystemProject._id;
     }
 
-    // Create the system project
+    // Create the system project with initial version
     const now = Date.now();
+    const initialVersion = "v1.0.0";
     const systemProjectId = await ctx.db.insert("projects", {
       name: "ai-deploy-agent-core",
       description: "Internal system project for self-deployment",
@@ -96,6 +97,10 @@ export const seedSystemProject = internalMutation({
       createdByRole: "admin",
       providerPreference: "vercel",
       environment: "production",
+      currentVersion: initialVersion,
+      latestAvailableVersion: initialVersion,
+      repositoryUrl: "https://github.com/your-org/ai-deploy-agent",
+      autoDeployEnabled: false,
     });
 
     return systemProjectId;
@@ -154,13 +159,51 @@ export const getSystemProject = query({
   },
 });
 
-// Mutation to trigger self-deployment (admin-only, uses existing deployment pipeline)
-export const deploySelf = mutation({
-  args: {
-    provider: v.string(),
-    mode: v.union(v.literal("simulation"), v.literal("live")),
+// Query to get platform version information (admin-only)
+export const getPlatformVersion = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user?.isAdmin) {
+      return null;
+    }
+
+    // Get the system project
+    const systemProject = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("isSystemProject"), true))
+      .first();
+
+    if (!systemProject) {
+      return null;
+    }
+
+    const currentVersion = systemProject.currentVersion ?? "v1.0.0";
+    const latestAvailableVersion = systemProject.latestAvailableVersion ?? "v1.0.0";
+    const updateAvailable = currentVersion !== latestAvailableVersion;
+
+    return {
+      currentVersion,
+      latestAvailableVersion,
+      updateAvailable,
+      lastSelfDeployAt: systemProject.lastSelfDeployAt,
+    };
   },
-  handler: async (ctx, { provider, mode }) => {
+});
+
+// Mutation to set latest platform version (admin-only, for simulating releases)
+export const setLatestPlatformVersion = mutation({
+  args: { version: v.string() },
+  handler: async (ctx, { version }) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("UNAUTHENTICATED: User not logged in");
@@ -185,8 +228,72 @@ export const deploySelf = mutation({
       throw new Error("NOT_FOUND: System project not found. Please initialize it first.");
     }
 
-    // Use the existing deployment creation pipeline
-    // This will be handled by the existing createDeployment mutation
-    return { systemProjectId: systemProject._id };
+    // Update latest available version
+    await ctx.db.patch(systemProject._id, {
+      latestAvailableVersion: version,
+    });
+
+    return { success: true, version };
+  },
+});
+
+// Mutation to trigger self-deployment (admin-only, uses existing deployment pipeline)
+export const triggerSelfDeploy = mutation({
+  args: {
+    provider: v.string(),
+    providerId: v.string(),
+    mode: v.union(v.literal("simulation"), v.literal("live")),
+  },
+  handler: async (ctx, { provider, providerId, mode }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("UNAUTHENTICATED: User not logged in");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user?.isAdmin) {
+      throw new Error("FORBIDDEN: Admin access required");
+    }
+
+    // Get the system project
+    const systemProject = await ctx.db
+      .query("projects")
+      .filter((q) => q.eq(q.field("isSystemProject"), true))
+      .first();
+
+    if (!systemProject) {
+      throw new Error("NOT_FOUND: System project not found. Please initialize it first.");
+    }
+
+    const latestVersion = systemProject.latestAvailableVersion ?? "v1.0.0";
+
+    // Create a deployment using the existing pipeline
+    const now = Date.now();
+    const deploymentId = await ctx.db.insert("deployments", {
+      projectId: systemProject._id,
+      provider,
+      providerId,
+      deploymentMode: mode,
+      targetEnvironment: systemProject.environment ?? "production",
+      createdAt: now,
+      updatedAt: now,
+      status: "pending",
+      logs: [`[${new Date(now).toISOString()}] Self-deployment initiated for ${latestVersion}`],
+      platformVersion: latestVersion,
+      isSelfDeployment: true,
+    });
+
+    // Schedule the deployment status updates using existing pattern
+    await ctx.scheduler.runAfter(0, internal.deployments.updateStatus, {
+      deploymentId,
+      status: "running",
+      log: `[${new Date(now).toISOString()}] Deployment pipeline started`,
+    });
+
+    return { deploymentId, systemProjectId: systemProject._id };
   },
 });

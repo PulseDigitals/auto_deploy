@@ -128,6 +128,8 @@ type Deployment = {
   alerts?: Alerts;
   deploymentIntelligence?: DeploymentIntelligence;
   aiInsights?: AIInsights;
+  platformVersion?: string; // version deployed during this run
+  isSelfDeployment?: boolean; // true if this is a self-deployment
 };
 
 export default function ProjectDetail() {
@@ -1416,8 +1418,21 @@ export default function ProjectDetail() {
                   className="cursor-pointer hover:bg-slate-800 transition flex items-center justify-between rounded-md bg-slate-900 px-4 py-3"
                 >
                   <div className="flex-1">
-                    <div className="text-sm font-medium">
-                      {deployment.provider} deployment
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {deployment.provider} deployment
+                      </span>
+                      {deployment.isSelfDeployment && (
+                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-amber-500/20 text-amber-300 flex items-center gap-1">
+                          <Rocket className="h-2.5 w-2.5" />
+                          Self Deployment
+                        </span>
+                      )}
+                      {deployment.platformVersion && (
+                        <span className="px-2 py-0.5 text-[10px] rounded-full bg-purple-500/20 text-purple-300 font-mono">
+                          {deployment.platformVersion}
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-400">
                       {new Date(deployment.createdAt).toLocaleString()}
