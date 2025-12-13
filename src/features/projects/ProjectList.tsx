@@ -9,8 +9,9 @@ import {
   EmptyTitle,
   EmptyDescription,
 } from "@/components/ui/empty.tsx";
-import { FolderGit2, ExternalLink, GitBranch } from "lucide-react";
+import { FolderGit2, ExternalLink, GitBranch, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
+import { Badge } from "@/components/ui/badge.tsx";
 
 interface ProjectListProps {
   projects: Doc<"projects">[] | undefined;
@@ -57,15 +58,26 @@ export default function ProjectList({ projects }: ProjectListProps) {
         <Card
           key={project._id}
           onClick={() => navigate(`/dashboard/projects/${project._id}`)}
-          className="cursor-pointer hover:bg-slate-800 hover:border-primary/50 transition-colors"
+          className={`cursor-pointer hover:bg-slate-800 hover:border-primary/50 transition-colors ${
+            project.isSystemProject ? 'border-amber-500/50 bg-amber-950/10' : ''
+          }`}
         >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FolderGit2 className="h-5 w-5 text-muted-foreground" />
               <span className="truncate">{project.name}</span>
+              {project.isSystemProject && (
+                <Badge variant="secondary" className="gap-1 ml-auto">
+                  <Shield className="h-3 w-3" />
+                  System
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {project.description && (
+              <p className="text-sm text-muted-foreground">{project.description}</p>
+            )}
             {project.gitRepoUrl && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <GitBranch className="h-4 w-4" />

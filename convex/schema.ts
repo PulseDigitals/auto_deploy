@@ -7,6 +7,7 @@ export default defineSchema({
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     isPowerUser: v.optional(v.boolean()), // Power users can access advanced features
+    isAdmin: v.optional(v.boolean()), // Admin users can access system projects
     subscription: v.optional(
       v.object({
         plan: v.string(), // "free" | "pro" | "team" | "enterprise"
@@ -21,7 +22,13 @@ export default defineSchema({
     userId: v.optional(v.string()), // For backward compatibility
     createdAt: v.number(),
     status: v.optional(v.string()), // "new" | "analyzing" | "analyzed" | "error"
-  }),
+    isSystemProject: v.optional(v.boolean()), // System projects are special
+    visibility: v.optional(v.union(v.literal("user"), v.literal("system"))), // "user" | "system"
+    createdByRole: v.optional(v.union(v.literal("user"), v.literal("admin"))), // "user" | "admin"
+    providerPreference: v.optional(v.string()), // Preferred provider for system project
+    environment: v.optional(v.string()), // Target environment for system project
+    description: v.optional(v.string()), // Description for system project
+  }).index("by_isSystemProject", ["isSystemProject"]),
 
   deployments: defineTable({
     projectId: v.id("projects"),

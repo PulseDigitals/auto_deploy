@@ -108,3 +108,53 @@ export const getUserByToken = internalQuery({
       .unique();
   },
 });
+
+// Query to check if current user is admin
+export const isCurrentUserAdmin = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    return user?.isAdmin ?? false;
+  },
+});
+
+// Mutation to toggle admin status (for development/testing only)
+export const toggleAdminStatus = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHENTICATED",
+        message: "User not logged in",
+      });
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
+    await ctx.db.patch(user._id, {
+      isAdmin: !(user.isAdmin ?? false),
+    });
+
+    return { isAdmin: !(user.isAdmin ?? false) };
+  },
+});
