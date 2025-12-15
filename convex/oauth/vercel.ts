@@ -8,7 +8,8 @@ import { internal } from "../_generated/api.js";
 //   Production: https://<deployment>.convex.site/api/oauth/vercel/callback
 const VERCEL_CLIENT_ID = process.env.VERCEL_OAUTH_CLIENT_ID || "";
 const VERCEL_CLIENT_SECRET = process.env.VERCEL_OAUTH_CLIENT_SECRET || "";
-const VERCEL_REDIRECT_URI = process.env.VERCEL_OAUTH_REDIRECT_URI || "http://localhost:3000/api/oauth/vercel/callback";
+
+const VERCEL_REDIRECT_URI = "https://pleasant-donkey-394.convex.site/api/oauth/vercel/callback";
 const APP_BASE_URL = process.env.APP_BASE_URL || "http://localhost:5173";
 
 /**
