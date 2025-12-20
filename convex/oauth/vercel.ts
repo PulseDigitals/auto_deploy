@@ -41,7 +41,7 @@ function generateState(): string {
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * PART A: START AUTH ROUTE
- * GET /auth/vercel/start
+ * GET /auth/vercel/start?state=<pre-generated-state>
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  */
 export const startVercelOAuth = httpAction(async (ctx, request) => {
@@ -65,18 +65,16 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
   }
 
   try {
-    // Generate cryptographically strong state
-    const state = generateState();
-    const now = Date.now();
-    const expiresAt = now + 10 * 60 * 1000; // 10 minutes
+    // Get pre-generated state from URL parameter
+    const url = new URL(request.url);
+    const state = url.searchParams.get("state");
 
-    console.log("[OAuth Start] Generated state:", state.substring(0, 16) + "...");
+    if (!state) {
+      console.error("[OAuth Start] Missing state parameter");
+      return new Response("Missing state parameter", { status: 400 });
+    }
 
-    // Store state in database with TTL
-    await ctx.runMutation(internal.oauth.vercel.storeAuthState, {
-      state,
-      expiresAt,
-    });
+    console.log("[OAuth Start] Using pre-generated state:", state.substring(0, 16) + "...");
 
     // Build authorization URL
     const params = new URLSearchParams({
@@ -310,6 +308,52 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
 
 import { internalMutation } from "../_generated/server.js";
 import { v } from "convex/values";
+import { mutation } from "../_generated/server.js";
+
+/**
+ * Generate OAuth state token with user context (called from frontend)
+ * This ensures the state is associated with the authenticated user
+ */
+export const generateOAuthState = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Get current user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Must be authenticated to start OAuth flow");
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Generate cryptographically strong state
+    const array = new Uint8Array(32);
+    crypto.getRandomValues(array);
+    const state = btoa(String.fromCharCode(...array))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+
+    const now = Date.now();
+    const expiresAt = now + 10 * 60 * 1000; // 10 minutes
+
+    // Store state with userId
+    await ctx.db.insert("vercelAuthStates", {
+      state,
+      userId: user._id,
+      createdAt: now,
+      expiresAt,
+    });
+
+    return { state };
+  },
+});
 
 /**
  * Store auth state for CSRF protection
@@ -380,33 +424,22 @@ export const validateAndConsumeState = internalMutation({
       };
     }
 
-    // Mark as used
-    await ctx.db.patch(stateRecord._id, {
-      usedAt: now,
-    });
-
-    // Get userId from state or current session
-    const identity = await ctx.auth.getUserIdentity();
-    let userId = stateRecord.userId;
-
-    if (!userId && identity) {
-      const user = await ctx.db
-        .query("users")
-        .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-        .unique();
-      userId = user?._id;
-    }
-
-    if (!userId) {
+    // Check if userId exists
+    if (!stateRecord.userId) {
       return {
         valid: false,
         reason: "user_not_found",
       };
     }
 
+    // Mark as used
+    await ctx.db.patch(stateRecord._id, {
+      usedAt: now,
+    });
+
     return {
       valid: true,
-      userId,
+      userId: stateRecord.userId,
     };
   },
 });

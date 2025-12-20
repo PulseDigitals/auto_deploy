@@ -35,6 +35,7 @@ export default function Settings() {
   const releaseStatus = useQuery(api.platformReleases.getReleaseAutomationStatus, {});
   
   // Mutations
+  const generateOAuthState = useMutation(api.oauth.vercel.generateOAuthState);
   const setInstalledTeam = useMutation(api.vercelConnections.setInstalledTeam);
   const disconnectVercel = useMutation(api.vercelConnections.disconnectVercel);
   const disconnectProvider = useMutation(api.providerAuthHelpers.disconnectProvider);
@@ -73,11 +74,25 @@ export default function Settings() {
     }
   }, [searchParams, setSearchParams]);
   
-  const handleConnectVercel = () => {
+  const handleConnectVercel = async () => {
     setIsConnecting(true);
-    const oauthUrl = getOAuthStartUrl("vercel");
-    console.log("Redirecting to Vercel OAuth:", oauthUrl);
-    window.location.href = oauthUrl;
+    try {
+      // Step 1: Generate state token with user context
+      const { state } = await generateOAuthState({});
+      
+      // Step 2: Build OAuth start URL with state
+      const baseUrl = getOAuthStartUrl("vercel");
+      const oauthUrl = `${baseUrl}?state=${encodeURIComponent(state)}`;
+      
+      console.log("Redirecting to Vercel OAuth:", oauthUrl);
+      
+      // Step 3: Redirect to OAuth flow
+      window.location.href = oauthUrl;
+    } catch (error) {
+      console.error("Failed to start OAuth flow:", error);
+      toast.error("Failed to start OAuth flow. Please try again.");
+      setIsConnecting(false);
+    }
   };
   
   const handleDisconnectVercel = async () => {
