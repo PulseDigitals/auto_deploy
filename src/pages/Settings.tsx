@@ -290,6 +290,223 @@ export default function Settings() {
         </Card>
       </div>
 
+      {/* Vercel Connection & Team Installation */}
+      <div>
+        <h2 className="text-2xl font-bold mb-4">Vercel Connection</h2>
+        <p className="text-muted-foreground mb-6">
+          Connect your Vercel account and select a team for live deployments
+        </p>
+        
+        <div className="grid gap-6">
+          {/* Main Connection Card */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {/* Connection Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">▲</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-2">
+                        Vercel
+                        {vercelConnection ? (
+                          <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Connected
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Not Connected
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {vercelConnection 
+                          ? "Connected and ready for live deployments" 
+                          : "Connect to deploy projects to Vercel"}
+                      </p>
+                    </div>
+                  </div>
+                  <div>
+                    {vercelConnection ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDisconnectVercel}
+                      >
+                        Disconnect
+                      </Button>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        onClick={handleConnectVercel}
+                        disabled={isConnecting}
+                        className="gap-2"
+                      >
+                        {isConnecting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="h-4 w-4" />
+                            Connect Vercel
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Team Installation (only shown when connected) */}
+                {vercelConnection && (
+                  <>
+                    <div className="border-t border-border pt-4">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-base font-semibold">Install into a Team</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Select the Vercel team where this app can create deployments and manage projects. You can change this later.
+                          </p>
+                        </div>
+
+                        {vercelConnection.teamSlug ? (
+                          <Alert>
+                            <CheckCircle2 className="h-4 w-4" />
+                            <AlertTitle>Installed in Team</AlertTitle>
+                            <AlertDescription>
+                              Auto Deploy is currently installed in <strong>{vercelConnection.teamSlug}</strong>. 
+                              Projects will be deployed to this team by default.
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>No Team Selected</AlertTitle>
+                            <AlertDescription>
+                              Please select a team below to enable live deployments.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="team-select">
+                            Choose where to install Auto Deploy
+                          </Label>
+                          <div className="flex gap-2">
+                            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                              <SelectTrigger id="team-select" className="flex-1">
+                                <SelectValue placeholder="Select a team..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTeams && availableTeams.length > 0 ? (
+                                  availableTeams.map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                      {team.name} ({team.slug})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>
+                                    No teams available
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={handleInstallTeam}
+                              disabled={!selectedTeamId}
+                            >
+                              Install to Team
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            If you belong to multiple teams, choose the one that owns the projects you want to deploy.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Debug Details (Expandable) */}
+          <Card>
+            <CardContent className="pt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between"
+                onClick={() => setShowDebugDetails(!showDebugDetails)}
+              >
+                <span className="font-medium">Debug Details</span>
+                {showDebugDetails ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+
+              {showDebugDetails && (
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Connection Status</Label>
+                    <p className="mt-1">
+                      {vercelConnection ? "Connected" : "Not Connected"}
+                    </p>
+                  </div>
+
+                  {vercelConnection && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Installed Team</Label>
+                        <p className="mt-1">
+                          {vercelConnection.teamSlug || "No team selected"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Token Status</Label>
+                        <p className="mt-1">
+                          {vercelConnection.hasToken ? "Valid" : "Missing"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Connected At</Label>
+                        <p className="mt-1">
+                          {new Date(vercelConnection.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">OAuth Start URL</Label>
+                    <p className="mt-1 font-mono text-xs break-all">
+                      {getOAuthStartUrl("vercel")}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      Make sure your VERCEL_REDIRECT_URI environment variable and Vercel OAuth app settings both use:
+                      <br />
+                      <code className="text-xs">https://pleasant-donkey-394.convex.site/auth/vercel/callback</code>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
       {/* Release Automation (Admin Only) */}
       {isAdmin && releaseStatus && (
         <div>
@@ -549,243 +766,6 @@ export default function Settings() {
           </div>
         </div>
       )}
-
-      {/* Vercel Connection & Team Installation */}
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Vercel Connection</h2>
-        <p className="text-muted-foreground mb-6">
-          Connect your Vercel account and select a team for live deployments
-        </p>
-        
-        <div className="grid gap-6">
-          {/* Main Connection Card */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {/* Connection Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">▲</span>
-                    </div>
-                    <div>
-                      <div className="font-semibold flex items-center gap-2">
-                        Vercel
-                        {vercelConnection ? (
-                          <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">
-                            <CheckCircle2 className="h-3 w-3 mr-1" />
-                            Connected
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-slate-500/20 text-slate-300 border-slate-500/30">
-                            <XCircle className="h-3 w-3 mr-1" />
-                            Not Connected
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {vercelConnection 
-                          ? "Connected and ready for live deployments" 
-                          : "Connect to deploy projects to Vercel"}
-                      </p>
-                    </div>
-                  </div>
-                  <div>
-                    {vercelConnection ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleDisconnectVercel}
-                      >
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button 
-                        size="sm" 
-                        onClick={handleConnectVercel}
-                        disabled={isConnecting}
-                        className="gap-2"
-                      >
-                        {isConnecting ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Connecting...
-                          </>
-                        ) : (
-                          <>
-                            <Link2 className="h-4 w-4" />
-                            Connect Vercel
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Team Installation (only shown when connected) */}
-                {vercelConnection && (
-                  <>
-                    <div className="border-t border-border pt-4">
-                      <div className="space-y-4">
-                        <div>
-                          <Label className="text-base font-semibold">Install into a Team</Label>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Select the Vercel team where this app can create deployments and manage projects. You can change this later.
-                          </p>
-                        </div>
-
-                        {vercelConnection.teamSlug ? (
-                          <Alert>
-                            <CheckCircle2 className="h-4 w-4" />
-                            <AlertTitle>Installed in Team</AlertTitle>
-                            <AlertDescription>
-                              Auto Deploy is currently installed in <strong>{vercelConnection.teamSlug}</strong>. 
-                              Projects will be deployed to this team by default.
-                            </AlertDescription>
-                          </Alert>
-                        ) : (
-                          <Alert>
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertTitle>No Team Selected</AlertTitle>
-                            <AlertDescription>
-                              Please select a team below to enable live deployments.
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="team-select">
-                            Choose where to install Auto Deploy
-                          </Label>
-                          <div className="flex gap-2">
-                            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
-                              <SelectTrigger id="team-select" className="flex-1">
-                                <SelectValue placeholder="Select a team..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableTeams && availableTeams.length > 0 ? (
-                                  availableTeams.map((team) => (
-                                    <SelectItem key={team.id} value={team.id}>
-                                      {team.name} ({team.slug})
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <SelectItem value="none" disabled>
-                                    No teams available
-                                  </SelectItem>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <Button
-                              onClick={handleInstallTeam}
-                              disabled={!selectedTeamId}
-                            >
-                              Install to Team
-                            </Button>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            If you belong to multiple teams, choose the one that owns the projects you want to deploy.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Debug Details (Expandable) */}
-          <Card>
-            <CardContent className="pt-6">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-between"
-                onClick={() => setShowDebugDetails(!showDebugDetails)}
-              >
-                <span className="font-medium">Debug Details</span>
-                {showDebugDetails ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-
-              {showDebugDetails && (
-                <div className="mt-4 space-y-3 text-sm">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Connection Status</Label>
-                    <p className="mt-1">
-                      {vercelConnection ? "Connected" : "Not Connected"}
-                    </p>
-                  </div>
-
-                  {vercelConnection && (
-                    <>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Installed Team</Label>
-                        <p className="mt-1">
-                          {vercelConnection.teamSlug || "No team selected"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Token Status</Label>
-                        <p className="mt-1">
-                          {vercelConnection.hasToken ? "Valid" : "Missing"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Connected At</Label>
-                        <p className="mt-1">
-                          {new Date(vercelConnection.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </>
-                  )}
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Redirect URI (Read-only)</Label>
-                    <p className="mt-1 font-mono text-xs break-all">
-                      https://auto-deploy.onhercules.app/auth/vercel/callback
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-border">
-                    <p className="text-xs text-muted-foreground">
-                      If you encounter issues, ensure your Vercel OAuth app redirect URI matches exactly (including protocol and path).
-                    </p>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Other Providers (Coming Soon) */}
-          <Card className="opacity-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">N</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold">Netlify</div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Coming soon
-                    </p>
-                  </div>
-                </div>
-                <Button size="sm" disabled>
-                  Connect
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     </div>
   );
 }
