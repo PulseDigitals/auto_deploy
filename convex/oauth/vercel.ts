@@ -9,10 +9,15 @@ import { internal } from "../_generated/api.js";
  * Environment Variables Required:
  * - VERCEL_CLIENT_ID: OAuth application client ID
  * - VERCEL_CLIENT_SECRET: OAuth application client secret
- * - VERCEL_REDIRECT_URI: Exact callback URL
+ * - VERCEL_REDIRECT_URI: Exact callback URL (MUST be Convex HTTP domain)
  * 
  * Production Setup:
- * VERCEL_REDIRECT_URI=https://auto-deploy.onhercules.app/auth/vercel/callback
+ * VERCEL_REDIRECT_URI=https://<deployment-name>.convex.site/auth/vercel/callback
+ * 
+ * ⚠️ CRITICAL: The redirect URI MUST point to the Convex HTTP Action domain (.convex.site)
+ * NOT the frontend app domain (.onhercules.app). The flow is:
+ * 1. Vercel redirects → Convex HTTP Action (processes OAuth)
+ * 2. Convex redirects → Frontend app (/dashboard/settings)
  */
 
 // Load environment variables
