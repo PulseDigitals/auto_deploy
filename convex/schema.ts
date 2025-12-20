@@ -208,4 +208,28 @@ export default defineSchema({
     connectedAt: v.number(), // Timestamp when connected
     lastValidatedAt: v.number(), // Last time token was validated
   }).index("by_user_and_provider", ["userId", "provider"]),
+
+  // Vercel-specific connection table with extended team support
+  vercelConnections: defineTable({
+    userId: v.id("users"), // User who owns this connection
+    vercelUserId: v.optional(v.string()), // Vercel user ID
+    teamId: v.optional(v.string()), // Selected installation team ID
+    teamSlug: v.optional(v.string()), // Selected installation team slug
+    accessToken: v.string(), // Access token (TODO: encrypt at rest)
+    refreshToken: v.optional(v.string()), // Refresh token if issued
+    tokenType: v.optional(v.string()), // "Bearer"
+    scope: v.optional(v.string()), // Granted scopes
+    expiresAt: v.optional(v.number()), // Token expiration timestamp
+    createdAt: v.number(), // Connection creation timestamp
+    updatedAt: v.number(), // Last update timestamp
+  }).index("by_userId", ["userId"]).index("by_teamId", ["teamId"]),
+
+  // OAuth state management for CSRF protection
+  vercelAuthStates: defineTable({
+    state: v.string(), // Cryptographically strong random state
+    userId: v.optional(v.id("users")), // User initiating OAuth (if available)
+    createdAt: v.number(), // State creation timestamp
+    expiresAt: v.number(), // State expiration timestamp (TTL: 10 minutes)
+    usedAt: v.optional(v.number()), // Timestamp when state was used (one-time use)
+  }).index("by_state", ["state"]).index("by_expiresAt", ["expiresAt"]),
 });

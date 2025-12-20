@@ -3,48 +3,41 @@ import { internal } from "../_generated/api.js";
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * PRODUCTION-GRADE VERCEL OAUTH 2.0 INTEGRATION
+ * PRODUCTION-GRADE VERCEL OAUTH 2.0 WITH CSRF PROTECTION
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * 
  * Environment Variables Required:
  * - VERCEL_CLIENT_ID: OAuth application client ID
  * - VERCEL_CLIENT_SECRET: OAuth application client secret
- * - VERCEL_REDIRECT_URI: Exact callback URL (must match Vercel app config)
- * - APP_BASE_URL: Frontend application URL for post-auth redirects
+ * - VERCEL_REDIRECT_URI: Exact callback URL
  * 
  * Production Setup:
  * VERCEL_REDIRECT_URI=https://auto-deploy.onhercules.app/auth/vercel/callback
- * APP_BASE_URL=https://auto-deploy.onhercules.app
  */
 
-// Load environment variables with validation
+// Load environment variables
 const VERCEL_CLIENT_ID = process.env.VERCEL_CLIENT_ID;
 const VERCEL_CLIENT_SECRET = process.env.VERCEL_CLIENT_SECRET;
 const VERCEL_REDIRECT_URI = process.env.VERCEL_REDIRECT_URI;
-const APP_BASE_URL = process.env.APP_BASE_URL || "https://auto-deploy.onhercules.app";
+const APP_BASE_URL = "https://auto-deploy.onhercules.app";
 
 /**
- * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * PART 1: AUTHORIZATION URL GENERATION
- * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * Generate cryptographically strong random state (32 bytes)
  */
-function generateAuthorizationUrl(clientId: string, redirectUri: string): string {
-  const params = new URLSearchParams({
-    client_id: clientId,
-    redirect_uri: redirectUri,
-    response_type: "code",
-  });
-
-  return `https://vercel.com/oauth/authorize?${params.toString()}`;
+function generateState(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
 }
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * PART 2: START AUTH ROUTE
+ * PART A: START AUTH ROUTE
  * GET /auth/vercel/start
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * 
- * Initiates OAuth flow by redirecting user to Vercel authorization page
  */
 export const startVercelOAuth = httpAction(async (ctx, request) => {
   console.log("[OAuth Start] Initiating Vercel OAuth flow");
@@ -66,38 +59,62 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
     });
   }
 
-  // Generate authorization URL
-  const authUrl = generateAuthorizationUrl(VERCEL_CLIENT_ID, VERCEL_REDIRECT_URI);
-  
-  console.log("[OAuth Start] Redirecting to Vercel authorization");
-  console.log("[OAuth Start] Client ID:", VERCEL_CLIENT_ID.substring(0, 10) + "...");
-  console.log("[OAuth Start] Redirect URI:", VERCEL_REDIRECT_URI);
+  try {
+    // Generate cryptographically strong state
+    const state = generateState();
+    const now = Date.now();
+    const expiresAt = now + 10 * 60 * 1000; // 10 minutes
 
-  // Redirect browser to Vercel OAuth authorization page
-  return new Response(null, {
-    status: 302,
-    headers: {
-      Location: authUrl,
-      "Cache-Control": "no-cache, no-store, must-revalidate",
-    },
-  });
+    console.log("[OAuth Start] Generated state:", state.substring(0, 16) + "...");
+
+    // Store state in database with TTL
+    await ctx.runMutation(internal.oauth.vercel.storeAuthState, {
+      state,
+      expiresAt,
+    });
+
+    // Build authorization URL
+    const params = new URLSearchParams({
+      client_id: VERCEL_CLIENT_ID,
+      redirect_uri: VERCEL_REDIRECT_URI,
+      response_type: "code",
+      state,
+    });
+
+    const authUrl = `https://vercel.com/oauth/authorize?${params.toString()}`;
+    
+    console.log("[OAuth Start] Redirecting to Vercel");
+    console.log("[OAuth Start] Redirect URI:", VERCEL_REDIRECT_URI);
+
+    // Redirect browser to Vercel OAuth page
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: authUrl,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+      },
+    });
+  } catch (error) {
+    console.error("[OAuth Start] Error:", error);
+    return new Response("Internal server error", { status: 500 });
+  }
 });
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * PART 3 & 4: CALLBACK ROUTE & TOKEN EXCHANGE
+ * PART B: CALLBACK ROUTE WITH STATE VALIDATION
  * GET /auth/vercel/callback
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * 
- * Handles OAuth callback from Vercel and exchanges authorization code for access token
  */
 export const handleVercelCallback = httpAction(async (ctx, request) => {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
+  const state = url.searchParams.get("state");
   const error = url.searchParams.get("error");
 
-  console.log("[OAuth Callback] Received callback from Vercel");
+  console.log("[OAuth Callback] Received callback");
   console.log("[OAuth Callback] Code present:", !!code);
+  console.log("[OAuth Callback] State present:", !!state);
   console.log("[OAuth Callback] Error present:", !!error);
 
   // Handle OAuth errors from Vercel
@@ -112,13 +129,24 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
     });
   }
 
-  // Validate authorization code is present
+  // Validate code is present
   if (!code) {
     console.error("[OAuth Callback] Missing authorization code");
     return new Response(null, {
       status: 302,
       headers: {
         Location: `${APP_BASE_URL}/dashboard/settings?error=missing_code`,
+      },
+    });
+  }
+
+  // Validate state is present
+  if (!state) {
+    console.error("[OAuth Callback] Missing state parameter");
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: `${APP_BASE_URL}/dashboard/settings?error=missing_state`,
       },
     });
   }
@@ -135,7 +163,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
   }
 
   if (!VERCEL_REDIRECT_URI) {
-    console.error("[OAuth Callback] Missing redirect URI configuration");
+    console.error("[OAuth Callback] Missing redirect URI");
     return new Response(null, {
       status: 302,
       headers: {
@@ -145,14 +173,32 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
   }
 
   try {
-    console.log("[OAuth Callback] Exchanging authorization code for access token");
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // CSRF PROTECTION: Validate state
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log("[OAuth Callback] Validating state");
     
-    /**
-     * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     * TOKEN EXCHANGE REQUEST
-     * POST https://vercel.com/api/oauth/access_token
-     * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-     */
+    const stateValidation = await ctx.runMutation(internal.oauth.vercel.validateAndConsumeState, {
+      state,
+    });
+
+    if (!stateValidation.valid) {
+      console.error("[OAuth Callback] State validation failed:", stateValidation.reason);
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `${APP_BASE_URL}/dashboard/settings?error=invalid_state`,
+        },
+      });
+    }
+
+    console.log("[OAuth Callback] State validated successfully");
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // TOKEN EXCHANGE
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log("[OAuth Callback] Exchanging code for access token");
+    
     const tokenResponse = await fetch("https://vercel.com/api/oauth/access_token", {
       method: "POST",
       headers: {
@@ -166,14 +212,12 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       }),
     });
 
-    console.log("[OAuth Callback] Token exchange response status:", tokenResponse.status);
+    console.log("[OAuth Callback] Token response status:", tokenResponse.status);
 
-    // Handle token exchange failure
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       console.error("[OAuth Callback] Token exchange failed:", {
         status: tokenResponse.status,
-        statusText: tokenResponse.statusText,
         body: errorText,
       });
       
@@ -185,21 +229,17 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       });
     }
 
-    // Parse token response
     const tokenData = await tokenResponse.json() as {
       access_token: string;
       token_type: string;
       installation_id?: string;
       user_id?: string;
       team_id?: string;
+      scope?: string;
     };
 
     console.log("[OAuth Callback] Token exchange successful");
-    console.log("[OAuth Callback] Token type:", tokenData.token_type);
-    console.log("[OAuth Callback] User ID:", tokenData.user_id);
-    console.log("[OAuth Callback] Team ID:", tokenData.team_id);
 
-    // Validate access token
     if (!tokenData.access_token) {
       console.error("[OAuth Callback] No access token in response");
       return new Response(null, {
@@ -210,74 +250,33 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       });
     }
 
-    // Fetch user information from Vercel
-    console.log("[OAuth Callback] Fetching user information from Vercel");
-    const userResponse = await fetch("https://api.vercel.com/v2/user", {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-      },
-    });
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // PERSIST CONNECTION
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    console.log("[OAuth Callback] Persisting connection");
 
-    if (!userResponse.ok) {
-      console.error("[OAuth Callback] Failed to fetch user info:", userResponse.status);
+    if (!stateValidation.userId) {
+      console.error("[OAuth Callback] No userId in state validation");
       return new Response(null, {
         status: 302,
         headers: {
-          Location: `${APP_BASE_URL}/dashboard/settings?error=user_fetch_failed`,
+          Location: `${APP_BASE_URL}/dashboard/settings?error=user_not_found`,
         },
       });
     }
 
-    const userData = await userResponse.json() as {
-      user: {
-        id: string;
-        email: string;
-        name: string;
-        username: string;
-      };
-    };
-
-    console.log("[OAuth Callback] User info retrieved:", {
-      username: userData.user.username,
-      email: userData.user.email,
-    });
-
-    // Fetch team info if applicable
-    let teamName: string | undefined;
-    if (tokenData.team_id) {
-      try {
-        console.log("[OAuth Callback] Fetching team information");
-        const teamResponse = await fetch(`https://api.vercel.com/v2/teams/${tokenData.team_id}`, {
-          headers: {
-            Authorization: `Bearer ${tokenData.access_token}`,
-          },
-        });
-        if (teamResponse.ok) {
-          const teamData = await teamResponse.json() as { name: string };
-          teamName = teamData.name;
-          console.log("[OAuth Callback] Team info retrieved:", teamName);
-        }
-      } catch (error) {
-        console.warn("[OAuth Callback] Failed to fetch team info:", error);
-      }
-    }
-
-    // Store connection in database
-    console.log("[OAuth Callback] Storing connection in database");
-    await ctx.runMutation(internal.providerTokens.storeConnection, {
-      provider: "vercel",
+    await ctx.runMutation(internal.oauth.vercel.persistConnection, {
+      userId: stateValidation.userId,
       accessToken: tokenData.access_token,
-      scopes: ["user:read", "project:read", "team:read"],
-      accountName: userData.user.username || userData.user.name,
-      accountEmail: userData.user.email,
-      teamId: tokenData.team_id,
-      teamName,
+      vercelUserId: tokenData.user_id,
+      tokenType: tokenData.token_type,
+      scope: tokenData.scope,
     });
 
-    console.log("[OAuth Callback] Connection stored successfully");
-    console.log("[OAuth Callback] Redirecting to dashboard");
+    console.log("[OAuth Callback] Connection persisted successfully");
+    console.log("[OAuth Callback] Redirecting to settings");
 
-    // Redirect back to settings with success message
+    // Redirect to settings with success
     return new Response(null, {
       status: 302,
       headers: {
@@ -286,7 +285,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
     });
 
   } catch (error) {
-    console.error("[OAuth Callback] Unexpected error during OAuth flow:", error);
+    console.error("[OAuth Callback] Unexpected error:", error);
     console.error("[OAuth Callback] Error stack:", error instanceof Error ? error.stack : "N/A");
     
     return new Response(null, {
@@ -296,4 +295,135 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       },
     });
   }
+});
+
+/**
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * INTERNAL HELPERS
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ */
+
+import { internalMutation } from "../_generated/server.js";
+import { v } from "convex/values";
+
+/**
+ * Store auth state for CSRF protection
+ */
+export const storeAuthState = internalMutation({
+  args: {
+    state: v.string(),
+    expiresAt: v.number(),
+  },
+  handler: async (ctx, args) => {
+    // Get current user if authenticated
+    const identity = await ctx.auth.getUserIdentity();
+    let userId = undefined;
+
+    if (identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+        .unique();
+      userId = user?._id;
+    }
+
+    await ctx.db.insert("vercelAuthStates", {
+      state: args.state,
+      userId,
+      createdAt: Date.now(),
+      expiresAt: args.expiresAt,
+    });
+  },
+});
+
+/**
+ * Validate and consume auth state (one-time use)
+ */
+export const validateAndConsumeState = internalMutation({
+  args: {
+    state: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+
+    // Find state record
+    const stateRecord = await ctx.db
+      .query("vercelAuthStates")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+
+    if (!stateRecord) {
+      return {
+        valid: false,
+        reason: "state_not_found",
+      };
+    }
+
+    // Check if expired
+    if (now > stateRecord.expiresAt) {
+      return {
+        valid: false,
+        reason: "state_expired",
+      };
+    }
+
+    // Check if already used
+    if (stateRecord.usedAt) {
+      return {
+        valid: false,
+        reason: "state_already_used",
+      };
+    }
+
+    // Mark as used
+    await ctx.db.patch(stateRecord._id, {
+      usedAt: now,
+    });
+
+    // Get userId from state or current session
+    const identity = await ctx.auth.getUserIdentity();
+    let userId = stateRecord.userId;
+
+    if (!userId && identity) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+        .unique();
+      userId = user?._id;
+    }
+
+    if (!userId) {
+      return {
+        valid: false,
+        reason: "user_not_found",
+      };
+    }
+
+    return {
+      valid: true,
+      userId,
+    };
+  },
+});
+
+/**
+ * Persist Vercel connection after successful OAuth
+ */
+export const persistConnection = internalMutation({
+  args: {
+    userId: v.id("users"),
+    accessToken: v.string(),
+    vercelUserId: v.optional(v.string()),
+    tokenType: v.optional(v.string()),
+    scope: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runMutation(internal.vercelConnections.upsertVercelConnection, {
+      userId: args.userId,
+      accessToken: args.accessToken,
+      vercelUserId: args.vercelUserId,
+      tokenType: args.tokenType,
+      scope: args.scope,
+    });
+  },
 });

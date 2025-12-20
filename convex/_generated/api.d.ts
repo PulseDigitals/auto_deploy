@@ -37,6 +37,7 @@ import type * as vercel_liveDeployment from "../vercel/liveDeployment.js";
 import type * as vercel_liveDeploymentHelpers from "../vercel/liveDeploymentHelpers.js";
 import type * as vercel_liveDeploymentPolling from "../vercel/liveDeploymentPolling.js";
 import type * as vercel_pollStatus from "../vercel/pollStatus.js";
+import type * as vercelConnections from "../vercelConnections.js";
 import type * as zipUpload from "../zipUpload.js";
 
 import type {
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   "vercel/liveDeploymentHelpers": typeof vercel_liveDeploymentHelpers;
   "vercel/liveDeploymentPolling": typeof vercel_liveDeploymentPolling;
   "vercel/pollStatus": typeof vercel_pollStatus;
+  vercelConnections: typeof vercelConnections;
   zipUpload: typeof zipUpload;
 }>;
 

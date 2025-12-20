@@ -3,13 +3,15 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import { User, Key, Bell, Shield, Link2, CheckCircle2, XCircle, Loader2, Rocket, RefreshCw, AlertCircle, ExternalLink } from "lucide-react";
+import { User, Key, Bell, Shield, Link2, CheckCircle2, XCircle, Loader2, Rocket, RefreshCw, AlertCircle, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import { getOAuthStartUrl } from "@/lib/convex-http.ts";
 
 export default function Settings() {
@@ -20,22 +22,33 @@ export default function Settings() {
   const [newReleaseVersion, setNewReleaseVersion] = useState("");
   const [newReleaseNotes, setNewReleaseNotes] = useState("");
   const [newReleaseChannel, setNewReleaseChannel] = useState<"stable" | "beta">("stable");
+  const [selectedTeamId, setSelectedTeamId] = useState<string>("");
+  const [showDebugDetails, setShowDebugDetails] = useState(false);
   
+  // Vercel connection queries
+  const vercelConnection = useQuery(api.vercelConnections.getVercelConnection, {});
+  const availableTeams = useQuery(api.vercelConnections.getAvailableTeams, {});
+  
+  // Other queries
   const connections = useQuery(api.providerAuthHelpers.getUserConnections, {});
   const isAdmin = useQuery(api.users.isCurrentUserAdmin, {});
   const releaseStatus = useQuery(api.platformReleases.getReleaseAutomationStatus, {});
   
+  // Mutations
+  const setInstalledTeam = useMutation(api.vercelConnections.setInstalledTeam);
+  const disconnectVercel = useMutation(api.vercelConnections.disconnectVercel);
   const disconnectProvider = useMutation(api.providerAuthHelpers.disconnectProvider);
   const setAutomationSettings = useMutation(api.platformReleases.setReleaseAutomationSettings);
   const simulateRelease = useMutation(api.platformReleases.simulateNewRelease);
   const checkForReleases = useMutation(api.platformReleases.checkForReleases);
   
-  const vercelConnection = connections?.find((c) => c.provider === "vercel");
+  const vercelConnectionOld = connections?.find((c) => c.provider === "vercel");
   
   // Handle OAuth callback success/error messages
   useEffect(() => {
     const connected = searchParams.get("connected");
     const error = searchParams.get("error");
+    const message = searchParams.get("message");
     
     if (connected === "vercel") {
       toast.success("Successfully connected to Vercel!");
@@ -45,27 +58,61 @@ export default function Settings() {
     
     if (error) {
       const errorMessages: Record<string, string> = {
-        missing_code: "Authorization code missing",
-        config_missing: "OAuth configuration not set up",
-        token_exchange_failed: "Failed to exchange authorization code",
-        no_access_token: "No access token received",
-        user_fetch_failed: "Failed to fetch user information",
-        unknown: "An unknown error occurred",
+        missing_code: "Authorization code missing. Please try connecting again.",
+        missing_state: "Security check failed: Missing state parameter. Please try connecting again.",
+        invalid_state: "Security check failed (state mismatch or expired). Please click Connect again.",
+        token_exchange_failed: "Connection failed while exchanging the authorization code. Please re-try. If it persists, confirm your Vercel App Client Secret and Redirect URI match exactly.",
+        no_access_token: "No access token received from Vercel. Please try connecting again.",
+        oauth_error: message ? decodeURIComponent(message) : "Vercel OAuth error occurred",
+        config_missing: "OAuth configuration is incomplete. Please check your environment variables.",
+        unknown: "An unknown error occurred. Please try again.",
       };
-      toast.error(errorMessages[error] || "Failed to connect provider");
+      toast.error(errorMessages[error] || "Failed to connect to Vercel");
       // Clear URL parameters
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
   
   const handleConnectVercel = () => {
-    // CRITICAL: OAuth must be initiated via full HTTP redirect to Convex HTTP Actions
-    // HTTP Actions are deployed on Convex domain (e.g., https://<deployment>.convex.site)
-    // NOT on the Vite app domain
     setIsConnecting(true);
     const oauthUrl = getOAuthStartUrl("vercel");
     console.log("Redirecting to Vercel OAuth:", oauthUrl);
     window.location.href = oauthUrl;
+  };
+  
+  const handleDisconnectVercel = async () => {
+    try {
+      await disconnectVercel({});
+      toast.success("Disconnected from Vercel");
+    } catch (error) {
+      toast.error("Failed to disconnect");
+      console.error(error);
+    }
+  };
+
+  const handleInstallTeam = async () => {
+    if (!selectedTeamId) {
+      toast.error("Please select a team");
+      return;
+    }
+
+    const team = availableTeams?.find((t) => t.id === selectedTeamId);
+    if (!team) {
+      toast.error("Selected team not found");
+      return;
+    }
+
+    try {
+      const result = await setInstalledTeam({
+        teamId: team.id,
+        teamSlug: team.slug,
+      });
+      toast.success(`Installed successfully. Auto Deploy can now deploy projects in ${result.teamSlug}.`);
+      setSelectedTeamId("");
+    } catch (error) {
+      toast.error("Failed to install team");
+      console.error(error);
+    }
   };
   
   const handleDisconnect = async (provider: string) => {
@@ -503,89 +550,220 @@ export default function Settings() {
         </div>
       )}
 
-      {/* Provider Connections */}
+      {/* Vercel Connection & Team Installation */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Provider Connections</h2>
+        <h2 className="text-2xl font-bold mb-4">Vercel Connection</h2>
         <p className="text-muted-foreground mb-6">
-          Connect your deployment provider accounts to enable live deployments
+          Connect your Vercel account and select a team for live deployments
         </p>
         
-        <div className="grid gap-4">
-          {/* Vercel */}
+        <div className="grid gap-6">
+          {/* Main Connection Card */}
           <Card>
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">▲</span>
+              <div className="space-y-4">
+                {/* Connection Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-black flex items-center justify-center">
+                      <span className="text-white font-bold text-sm">▲</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-2">
+                        Vercel
+                        {vercelConnection ? (
+                          <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Connected
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Not Connected
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {vercelConnection 
+                          ? "Connected and ready for live deployments" 
+                          : "Connect to deploy projects to Vercel"}
+                      </p>
+                    </div>
                   </div>
                   <div>
-                    <div className="font-semibold flex items-center gap-2">
-                      Vercel
-                      {vercelConnection ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-500/20 text-green-300">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Connected
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-slate-500/20 text-slate-300">
-                          <XCircle className="h-3 w-3" />
-                          Not Connected
-                        </span>
-                      )}
-                    </div>
                     {vercelConnection ? (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        <div>Account: {vercelConnection.accountName}</div>
-                        {vercelConnection.teamName && (
-                          <div>Team: {vercelConnection.teamName}</div>
-                        )}
-                        <div className="text-xs mt-1">
-                          Scopes: {vercelConnection.scopes.join(", ")}
-                        </div>
-                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleDisconnectVercel}
+                      >
+                        Disconnect
+                      </Button>
                     ) : (
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Connect to deploy to Vercel
-                      </p>
+                      <Button 
+                        size="sm" 
+                        onClick={handleConnectVercel}
+                        disabled={isConnecting}
+                        className="gap-2"
+                      >
+                        {isConnecting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Connecting...
+                          </>
+                        ) : (
+                          <>
+                            <Link2 className="h-4 w-4" />
+                            Connect Vercel
+                          </>
+                        )}
+                      </Button>
                     )}
                   </div>
                 </div>
-                <div>
-                  {vercelConnection ? (
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleDisconnect("vercel")}
-                    >
-                      Disconnect
-                    </Button>
-                  ) : (
-                    <Button 
-                      size="sm" 
-                      onClick={handleConnectVercel}
-                      disabled={isConnecting}
-                      className="gap-2"
-                    >
-                      {isConnecting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Connecting...
-                        </>
-                      ) : (
-                        <>
-                          <Link2 className="h-4 w-4" />
-                          Connect Vercel
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
+
+                {/* Team Installation (only shown when connected) */}
+                {vercelConnection && (
+                  <>
+                    <div className="border-t border-border pt-4">
+                      <div className="space-y-4">
+                        <div>
+                          <Label className="text-base font-semibold">Install into a Team</Label>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Select the Vercel team where this app can create deployments and manage projects. You can change this later.
+                          </p>
+                        </div>
+
+                        {vercelConnection.teamSlug ? (
+                          <Alert>
+                            <CheckCircle2 className="h-4 w-4" />
+                            <AlertTitle>Installed in Team</AlertTitle>
+                            <AlertDescription>
+                              Auto Deploy is currently installed in <strong>{vercelConnection.teamSlug}</strong>. 
+                              Projects will be deployed to this team by default.
+                            </AlertDescription>
+                          </Alert>
+                        ) : (
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertTitle>No Team Selected</AlertTitle>
+                            <AlertDescription>
+                              Please select a team below to enable live deployments.
+                            </AlertDescription>
+                          </Alert>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="team-select">
+                            Choose where to install Auto Deploy
+                          </Label>
+                          <div className="flex gap-2">
+                            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                              <SelectTrigger id="team-select" className="flex-1">
+                                <SelectValue placeholder="Select a team..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableTeams && availableTeams.length > 0 ? (
+                                  availableTeams.map((team) => (
+                                    <SelectItem key={team.id} value={team.id}>
+                                      {team.name} ({team.slug})
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="none" disabled>
+                                    No teams available
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              onClick={handleInstallTeam}
+                              disabled={!selectedTeamId}
+                            >
+                              Install to Team
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            If you belong to multiple teams, choose the one that owns the projects you want to deploy.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
-          
-          {/* Other providers (coming soon) */}
+
+          {/* Debug Details (Expandable) */}
+          <Card>
+            <CardContent className="pt-6">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-between"
+                onClick={() => setShowDebugDetails(!showDebugDetails)}
+              >
+                <span className="font-medium">Debug Details</span>
+                {showDebugDetails ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+
+              {showDebugDetails && (
+                <div className="mt-4 space-y-3 text-sm">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Connection Status</Label>
+                    <p className="mt-1">
+                      {vercelConnection ? "Connected" : "Not Connected"}
+                    </p>
+                  </div>
+
+                  {vercelConnection && (
+                    <>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Installed Team</Label>
+                        <p className="mt-1">
+                          {vercelConnection.teamSlug || "No team selected"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Token Status</Label>
+                        <p className="mt-1">
+                          {vercelConnection.hasToken ? "Valid" : "Missing"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Connected At</Label>
+                        <p className="mt-1">
+                          {new Date(vercelConnection.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Redirect URI (Read-only)</Label>
+                    <p className="mt-1 font-mono text-xs break-all">
+                      https://auto-deploy.onhercules.app/auth/vercel/callback
+                    </p>
+                  </div>
+
+                  <div className="pt-2 border-t border-border">
+                    <p className="text-xs text-muted-foreground">
+                      If you encounter issues, ensure your Vercel OAuth app redirect URI matches exactly (including protocol and path).
+                    </p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Other Providers (Coming Soon) */}
           <Card className="opacity-50">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
