@@ -202,17 +202,20 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     console.log("[OAuth Callback] Exchanging code for access token");
     
-    const tokenResponse = await fetch("https://vercel.com/api/oauth/access_token", {
+    // Vercel expects application/x-www-form-urlencoded
+    const tokenParams = new URLSearchParams({
+      client_id: VERCEL_CLIENT_ID,
+      client_secret: VERCEL_CLIENT_SECRET,
+      code: code,
+      redirect_uri: VERCEL_REDIRECT_URI,
+    });
+    
+    const tokenResponse = await fetch("https://api.vercel.com/v2/oauth/access_token", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
       },
-      body: JSON.stringify({
-        client_id: VERCEL_CLIENT_ID,
-        client_secret: VERCEL_CLIENT_SECRET,
-        code: code,
-        redirect_uri: VERCEL_REDIRECT_URI,
-      }),
+      body: tokenParams.toString(),
     });
 
     console.log("[OAuth Callback] Token response status:", tokenResponse.status);
