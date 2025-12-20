@@ -4,6 +4,9 @@
  * 
  * Local dev: http://localhost:3000
  * Production: https://<deployment>.convex.site (note: .site not .cloud)
+ * 
+ * For Hercules production apps, HTTP Actions may be routed through
+ * the main app domain (e.g., https://auto-deploy.onhercules.app)
  */
 export function getConvexHttpUrl(): string {
   const convexUrl = import.meta.env.VITE_CONVEX_URL ?? "http://localhost:3000";
@@ -25,8 +28,10 @@ export function getConvexHttpUrl(): string {
 
 /**
  * Get the full OAuth start URL for a provider
+ * 
+ * Production route: /auth/vercel/start
  */
 export function getOAuthStartUrl(provider: "vercel"): string {
   const baseUrl = getConvexHttpUrl();
-  return `${baseUrl}/api/oauth/${provider}/start`;
+  return `${baseUrl}/auth/${provider}/start`;
 }
