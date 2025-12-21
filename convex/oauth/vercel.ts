@@ -257,10 +257,10 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       });
     }
     
-    // Vercel expects application/x-www-form-urlencoded
+    // Try HTTP Basic Auth for client credentials (RFC 6749 standard)
+    const credentials = btoa(`${VERCEL_CLIENT_ID}:${VERCEL_CLIENT_SECRET}`);
+    
     const tokenParams = new URLSearchParams({
-      client_id: VERCEL_CLIENT_ID,
-      client_secret: VERCEL_CLIENT_SECRET,
       code: code,
       redirect_uri: VERCEL_REDIRECT_URI,
       grant_type: "authorization_code",
@@ -271,6 +271,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
+        "Authorization": `Basic ${credentials}`,
       },
       body: tokenParams.toString(),
     });
