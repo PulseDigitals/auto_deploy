@@ -61,31 +61,68 @@ export const getAvailableTeams = action({
     }
 
     try {
-      // Fetch teams from Vercel API
-      const response = await fetch("https://api.vercel.com/v2/teams", {
+      // First, fetch the authenticated user to get their default team and personal account
+      const userResponse = await fetch("https://api.vercel.com/v2/user", {
         headers: {
           Authorization: `Bearer ${connection.accessToken}`,
         },
       });
 
-      if (!response.ok) {
-        const errorBody = await response.text();
-        console.error("Failed to fetch Vercel teams:", {
-          status: response.status,
-          statusText: response.statusText,
+      if (!userResponse.ok) {
+        const errorBody = await userResponse.text();
+        console.error("Failed to fetch Vercel user:", {
+          status: userResponse.status,
+          statusText: userResponse.statusText,
           body: errorBody,
         });
         return [];
       }
 
-      const data = await response.json() as VercelTeamsResponse;
+      const userData = await userResponse.json() as {
+        user: {
+          id: string;
+          username: string;
+          email: string;
+          name: string;
+          defaultTeamId?: string;
+        };
+      };
 
-      // Return simplified team data
-      return data.teams.map((team) => ({
-        id: team.id,
-        slug: team.slug,
-        name: team.name,
-      }));
+      console.log("Vercel user data:", userData);
+
+      // Now try to fetch teams - this might require the user to have team memberships
+      const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
+        headers: {
+          Authorization: `Bearer ${connection.accessToken}`,
+        },
+      });
+
+      // Create a list with the user's personal account first
+      const teams: Array<{ id: string; slug: string; name: string }> = [
+        {
+          id: userData.user.id,
+          slug: userData.user.username,
+          name: `${userData.user.name || userData.user.username} (Personal)`,
+        },
+      ];
+
+      // If we can fetch teams, add them
+      if (teamsResponse.ok) {
+        const teamsData = await teamsResponse.json() as VercelTeamsResponse;
+        teams.push(...teamsData.teams.map((team) => ({
+          id: team.id,
+          slug: team.slug,
+          name: team.name,
+        })));
+      } else {
+        const errorBody = await teamsResponse.text();
+        console.log("Could not fetch teams (this is OK, user might not have team access):", {
+          status: teamsResponse.status,
+          body: errorBody,
+        });
+      }
+
+      return teams;
     } catch (error) {
       console.error("Error fetching Vercel teams:", error);
       return [];
