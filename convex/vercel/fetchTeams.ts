@@ -73,20 +73,45 @@ export const getAvailableTeams = action({
       teamSlug: connection.teamSlug,
     });
 
-    // If the connection already has a teamId and teamSlug, return that team
-    if (connection.teamId && connection.teamSlug) {
-      console.log("[fetchTeams] Returning pre-selected team:", connection.teamSlug);
-      return [
-        {
-          id: connection.teamId,
-          slug: connection.teamSlug,
-          name: connection.teamSlug,
-        },
-      ];
-    }
-
     try {
-      // Fetch teams from Vercel API
+      // If we have a teamId (from integration installation), fetch that specific team
+      if (connection.teamId) {
+        console.log("[fetchTeams] Fetching team details for:", connection.teamId);
+        
+        const teamResponse = await fetch(`https://api.vercel.com/v2/teams/${connection.teamId}`, {
+          headers: {
+            Authorization: `Bearer ${connection.accessToken}`,
+          },
+        });
+
+        if (teamResponse.ok) {
+          const teamData = await teamResponse.json() as VercelTeam;
+          console.log("[fetchTeams] Successfully fetched team:", teamData.slug);
+          
+          // Update the connection with the team slug for future use
+          await ctx.runMutation(internal.vercelConnections.updateTeamSlug, {
+            userId: user._id,
+            teamSlug: teamData.slug,
+          });
+          
+          return [
+            {
+              id: teamData.id,
+              slug: teamData.slug,
+              name: teamData.name,
+            },
+          ];
+        } else {
+          const errorBody = await teamResponse.text();
+          console.error("Failed to fetch team details:", {
+            status: teamResponse.status,
+            body: errorBody,
+          });
+        }
+      }
+
+      // Fallback: Try to list all teams (may not work with integration tokens)
+      console.log("[fetchTeams] Attempting to list all teams");
       const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
         headers: {
           Authorization: `Bearer ${connection.accessToken}`,

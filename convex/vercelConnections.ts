@@ -225,6 +225,34 @@ export const disconnectVercel = mutation({
 });
 
 /**
+ * Internal mutation: Update team slug
+ * Called from fetchTeams action after fetching team details
+ */
+export const updateTeamSlug = internalMutation({
+  args: {
+    userId: v.id("users"),
+    teamSlug: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const connection = await ctx.db
+      .query("vercelConnections")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!connection) {
+      throw new Error("No Vercel connection found");
+    }
+
+    await ctx.db.patch(connection._id, {
+      teamSlug: args.teamSlug,
+      updatedAt: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+/**
  * Internal query: Get access token for live deployments
  * Only accessible from backend
  */
