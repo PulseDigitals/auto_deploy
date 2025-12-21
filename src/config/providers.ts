@@ -63,13 +63,13 @@ export const PROVIDERS: ProviderConfig[] = [
     docsUrl: "https://render.com/docs",
     badgeClass: "bg-indigo-900/40 text-indigo-200 border border-indigo-500/30",
     capabilities: {
-      live: false, // Coming soon
+      live: true, // API Key authentication
       simulation: true,
-      oauth: false,
-      statusPolling: false,
+      oauth: false, // Uses API Key instead
+      statusPolling: true,
       rollback: false,
-      customDomains: false,
-      environmentVariables: false,
+      customDomains: true,
+      environmentVariables: true,
     },
   },
   {

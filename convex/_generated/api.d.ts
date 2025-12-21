@@ -34,6 +34,7 @@ import type * as providers_types from "../providers/types.js";
 import type * as providers_vercelAdapter from "../providers/vercelAdapter.js";
 import type * as render_client from "../render/client.js";
 import type * as render_deploy from "../render/deploy.js";
+import type * as render_liveDeployment from "../render/liveDeployment.js";
 import type * as render_validateApiKey from "../render/validateApiKey.js";
 import type * as renderConnections from "../renderConnections.js";
 import type * as users from "../users.js";
@@ -85,6 +86,7 @@ declare const fullApi: ApiFromModules<{
   "providers/vercelAdapter": typeof providers_vercelAdapter;
   "render/client": typeof render_client;
   "render/deploy": typeof render_deploy;
+  "render/liveDeployment": typeof render_liveDeployment;
   "render/validateApiKey": typeof render_validateApiKey;
   renderConnections: typeof renderConnections;
   users: typeof users;

@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 
@@ -22,6 +22,14 @@ export const listAllDeployments = query({
   args: {},
   handler: async (ctx) => {
     return await ctx.db.query("deployments").order("desc").collect();
+  },
+});
+
+// Internal query to get deployment by ID
+export const getDeploymentById = internalQuery({
+  args: { deploymentId: v.id("deployments") },
+  handler: async (ctx, { deploymentId }) => {
+    return await ctx.db.get(deploymentId);
   },
 });
 
@@ -251,6 +259,15 @@ export const startDeploymentPipeline = internalMutation({
         return;
       }
       
+      if (deployment.providerId === "render") {
+        // Trigger live Render deployment
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await ctx.scheduler.runAfter(500, (internal as any)["render/liveDeployment"].executeLiveDeployment, {
+          deploymentId,
+        });
+        return;
+      }
+      
       // Other providers not yet implemented for live mode
       await ctx.scheduler.runAfter(500, internal.deployments.appendLog, {
         deploymentId,
@@ -393,5 +410,18 @@ export const updateSystemProjectAfterSelfDeploy = internalMutation({
         success: deployment.status === "success",
       });
     }
+  },
+});
+
+// Internal mutation to update production URL
+export const updateProductionUrl = internalMutation({
+  args: {
+    deploymentId: v.id("deployments"),
+    productionUrl: v.string(),
+  },
+  handler: async (ctx, { deploymentId, productionUrl }) => {
+    await ctx.db.patch(deploymentId, {
+      productionUrl,
+    });
   },
 });

@@ -85,6 +85,19 @@ export const isProviderConnected = query({
              !!vercelConnection.teamId;
     }
 
+    // Special case: Also check renderConnections table for Render
+    if (provider === "render") {
+      const renderConnection = await ctx.db
+        .query("renderConnections")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .first();
+      
+      // Check if connection has a valid API key
+      return renderConnection !== null && 
+             !!renderConnection.apiKey &&
+             renderConnection.isValid === true;
+    }
+
     return false;
   },
 });

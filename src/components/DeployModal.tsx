@@ -52,14 +52,19 @@ export default function DeployModal({
     (isSystemProject && isAdmin);
   const requiredPlan = getRequiredPlan("live_deployment");
   
-  // Check if provider is connected (only for Vercel currently)
+  // Check if provider is connected (Vercel and Render)
   const isProviderConnected = useQuery(
     api.providerAuthHelpers.isProviderConnected,
-    selectedProvider === "vercel" ? { provider: "vercel" } : "skip"
+    selectedProvider === "vercel" || selectedProvider === "render" 
+      ? { provider: selectedProvider } 
+      : "skip"
   );
   
-  // For live deployment, provider must be connected
-  const hasProviderConnection = selectedProvider === "vercel" ? isProviderConnected : false;
+  // For live deployment, provider must be connected (Vercel or Render)
+  const hasProviderConnection = 
+    selectedProvider === "vercel" || selectedProvider === "render" 
+      ? isProviderConnected 
+      : false;
 
   const handleToggleLive = (checked: boolean) => {
     setEnableLiveDeployment(checked);
@@ -79,10 +84,11 @@ export default function DeployModal({
 
   // Can deploy if:
   // - Not live mode, OR
-  // - Live mode AND consent checked AND (provider not Vercel OR Vercel is connected)
+  // - Live mode AND consent checked AND (provider not Vercel/Render OR Vercel/Render is connected)
   const canDeploy = 
     !enableLiveDeployment || 
-    (enableLiveDeployment && consentChecked && (selectedProvider !== "vercel" || hasProviderConnection));
+    (enableLiveDeployment && consentChecked && 
+     ((selectedProvider !== "vercel" && selectedProvider !== "render") || hasProviderConnection));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -163,21 +169,23 @@ export default function DeployModal({
             )}
           </div>
 
-          {/* Provider Connection Check (for Vercel live deployments) */}
-          {enableLiveDeployment && canUseLiveDeployment && selectedProvider === "vercel" && !hasProviderConnection && (
+          {/* Provider Connection Check (for Vercel and Render live deployments) */}
+          {enableLiveDeployment && canUseLiveDeployment && 
+           (selectedProvider === "vercel" || selectedProvider === "render") && 
+           !hasProviderConnection && (
             <div className="p-4 rounded-lg bg-blue-500/10 border-2 border-blue-500/30">
               <div className="flex items-start gap-3">
                 <Link2 className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
                 <div className="space-y-2 flex-1">
                   <div className="font-semibold text-blue-200">Provider Connection Required</div>
                   <p className="text-sm text-blue-200/80">
-                    You must connect your Vercel account before deploying live. This authorizes
+                    You must connect your {selectedProvider === "vercel" ? "Vercel" : "Render"} account before deploying live. This authorizes
                     the deployment agent to create resources on your behalf.
                   </p>
                   <Link to="/dashboard/settings" className="inline-block mt-2">
                     <Button size="sm" variant="outline" onClick={() => onOpenChange(false)}>
                       <Link2 className="h-4 w-4 mr-2" />
-                      Connect Vercel in Settings
+                      Connect {selectedProvider === "vercel" ? "Vercel" : "Render"} in Settings
                     </Button>
                   </Link>
                 </div>
@@ -186,7 +194,8 @@ export default function DeployModal({
           )}
 
           {/* Consent Gate (only shown when live deployment is enabled and provider connected) */}
-          {enableLiveDeployment && canUseLiveDeployment && (selectedProvider !== "vercel" || hasProviderConnection) && (
+          {enableLiveDeployment && canUseLiveDeployment && 
+           ((selectedProvider !== "vercel" && selectedProvider !== "render") || hasProviderConnection) && (
             <div className="space-y-4 p-4 rounded-lg bg-orange-500/10 border-2 border-orange-500/30">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-orange-400 flex-shrink-0 mt-0.5" />

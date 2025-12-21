@@ -1,4 +1,4 @@
-import { query, mutation, internalMutation } from "./_generated/server";
+import { query, mutation, internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api.js";
 import type { Id } from "./_generated/dataModel.d.ts";
 import { v } from "convex/values";
@@ -39,6 +39,14 @@ export const getProject = query({
 
 // Internal helper used by actions
 export const getProjectInternal = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }) => {
+    return await ctx.db.get(projectId);
+  },
+});
+
+// Internal query to get project by ID (for use in actions)
+export const getProjectById = internalQuery({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }) => {
     return await ctx.db.get(projectId);
