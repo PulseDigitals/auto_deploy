@@ -267,7 +267,8 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       code_verifier: stateValidation.codeVerifier,
     });
     
-    const tokenResponse = await fetch("https://api.vercel.com/login/oauth/token", {
+    // Use the correct endpoint for Vercel Integrations (not OAuth apps)
+    const tokenResponse = await fetch("https://api.vercel.com/v2/oauth/access_token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
