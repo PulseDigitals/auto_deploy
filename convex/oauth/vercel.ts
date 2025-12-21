@@ -39,6 +39,31 @@ function generateState(): string {
 }
 
 /**
+ * Generate PKCE code verifier (43-128 characters, URL-safe)
+ */
+function generateCodeVerifier(): string {
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return btoa(String.fromCharCode(...array))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+/**
+ * Generate PKCE code challenge from verifier using SHA-256
+ */
+async function generateCodeChallenge(verifier: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(verifier);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return btoa(String.fromCharCode(...new Uint8Array(hash)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=/g, "");
+}
+
+/**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * PART A: START AUTH ROUTE
  * GET /auth/vercel/start?state=<pre-generated-state>
@@ -76,17 +101,32 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
 
     console.log("[OAuth Start] Using pre-generated state:", state.substring(0, 16) + "...");
 
-    // Build authorization URL
+    // Look up state record to get code verifier
+    const stateRecord = await ctx.runQuery(internal.oauth.vercel.getStateRecord, {
+      state,
+    });
+
+    if (!stateRecord || !stateRecord.codeVerifier) {
+      console.error("[OAuth Start] State not found or missing code verifier");
+      return new Response("Invalid state", { status: 400 });
+    }
+
+    // Generate code challenge from verifier
+    const codeChallenge = await generateCodeChallenge(stateRecord.codeVerifier);
+
+    // Build authorization URL with PKCE
     const params = new URLSearchParams({
       client_id: VERCEL_CLIENT_ID,
       redirect_uri: VERCEL_REDIRECT_URI,
       response_type: "code",
       state,
+      code_challenge: codeChallenge,
+      code_challenge_method: "S256",
     });
 
     const authUrl = `https://vercel.com/oauth/authorize?${params.toString()}`;
     
-    console.log("[OAuth Start] Redirecting to Vercel");
+    console.log("[OAuth Start] Redirecting to Vercel with PKCE");
     console.log("[OAuth Start] Redirect URI:", VERCEL_REDIRECT_URI);
 
     // Redirect browser to Vercel OAuth page
@@ -198,9 +238,20 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
     console.log("[OAuth Callback] State validated successfully");
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // TOKEN EXCHANGE
+    // TOKEN EXCHANGE WITH PKCE
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    console.log("[OAuth Callback] Exchanging code for access token");
+    console.log("[OAuth Callback] Exchanging code for access token with PKCE");
+    
+    // Check if code verifier is present
+    if (!stateValidation.codeVerifier) {
+      console.error("[OAuth Callback] Missing code verifier");
+      return new Response(null, {
+        status: 302,
+        headers: {
+          Location: `${APP_BASE_URL}/dashboard/settings?error=missing_code_verifier`,
+        },
+      });
+    }
     
     // Vercel expects application/x-www-form-urlencoded
     const tokenParams = new URLSearchParams({
@@ -209,6 +260,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       code: code,
       redirect_uri: VERCEL_REDIRECT_URI,
       grant_type: "authorization_code",
+      code_verifier: stateValidation.codeVerifier,
     });
     
     const tokenResponse = await fetch("https://api.vercel.com/login/oauth/token", {
@@ -313,6 +365,29 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
 import { internalMutation } from "../_generated/server.js";
 import { v } from "convex/values";
 import { mutation } from "../_generated/server.js";
+import { internalQuery } from "../_generated/server.js";
+
+/**
+ * Get state record (internal query for HTTP action)
+ */
+export const getStateRecord = internalQuery({
+  args: { state: v.string() },
+  handler: async (ctx, args) => {
+    const stateRecord = await ctx.db
+      .query("vercelAuthStates")
+      .withIndex("by_state", (q) => q.eq("state", args.state))
+      .first();
+
+    if (!stateRecord) {
+      return null;
+    }
+
+    return {
+      codeVerifier: stateRecord.codeVerifier,
+      userId: stateRecord.userId,
+    };
+  },
+});
 
 /**
  * Generate OAuth state token with user context (called from frontend)
@@ -344,13 +419,22 @@ export const generateOAuthState = mutation({
       .replace(/\//g, "_")
       .replace(/=/g, "");
 
+    // Generate PKCE code verifier
+    const verifierArray = new Uint8Array(32);
+    crypto.getRandomValues(verifierArray);
+    const codeVerifier = btoa(String.fromCharCode(...verifierArray))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+
     const now = Date.now();
     const expiresAt = now + 10 * 60 * 1000; // 10 minutes
 
-    // Store state with userId
+    // Store state with userId and code verifier
     await ctx.db.insert("vercelAuthStates", {
       state,
       userId: user._id,
+      codeVerifier,
       createdAt: now,
       expiresAt,
     });
@@ -444,6 +528,7 @@ export const validateAndConsumeState = internalMutation({
     return {
       valid: true,
       userId: stateRecord.userId,
+      codeVerifier: stateRecord.codeVerifier,
     };
   },
 });

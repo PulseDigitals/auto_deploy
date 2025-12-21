@@ -228,6 +228,7 @@ export default defineSchema({
   vercelAuthStates: defineTable({
     state: v.string(), // Cryptographically strong random state
     userId: v.optional(v.id("users")), // User initiating OAuth (if available)
+    codeVerifier: v.optional(v.string()), // PKCE code verifier
     createdAt: v.number(), // State creation timestamp
     expiresAt: v.number(), // State expiration timestamp (TTL: 10 minutes)
     usedAt: v.optional(v.number()), // Timestamp when state was used (one-time use)
