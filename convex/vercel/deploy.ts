@@ -29,8 +29,8 @@ export const triggerDeployment = internalAction({
     const api = vercelClient(accessToken);
 
     try {
-      // Create a minimal deployment with placeholder files
-      // In production, this would be the actual built app files
+      // Create a minimal static site deployment with proper Vercel structure
+      // Vercel needs at least an index.html and optionally a vercel.json for configuration
       const files = [
         {
           file: "index.html",
@@ -41,8 +41,12 @@ export const triggerDeployment = internalAction({
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Deploy Agent</title>
   <style>
-    body {
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       display: flex;
       align-items: center;
@@ -53,33 +57,62 @@ export const triggerDeployment = internalAction({
     }
     .container {
       text-align: center;
-      padding: 2rem;
+      padding: 3rem;
+      max-width: 600px;
     }
     h1 {
-      font-size: 3rem;
+      font-size: 3.5rem;
       margin-bottom: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
     }
     p {
-      font-size: 1.25rem;
-      opacity: 0.9;
+      font-size: 1.5rem;
+      opacity: 0.95;
+      margin-bottom: 2rem;
+      line-height: 1.6;
     }
     .badge {
       display: inline-block;
-      padding: 0.5rem 1rem;
-      background: rgba(255, 255, 255, 0.2);
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.25);
       border-radius: 9999px;
-      margin-top: 1rem;
+      font-size: 1rem;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .details {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .detail-item {
+      margin: 0.75rem 0;
+      opacity: 0.85;
+      font-size: 1.125rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>🚀 AI Deploy Agent</h1>
-    <p>Successfully deployed to Vercel!</p>
-    <div class="badge">Live Deployment</div>
+    <p>Your deployment was successful!</p>
+    <div class="badge">✓ Live on Vercel</div>
+    <div class="details">
+      <div class="detail-item">Powered by AI Deploy Agent</div>
+      <div class="detail-item">Deployed with ❤️ to Vercel</div>
+    </div>
   </div>
 </body>
 </html>`).toString("base64"),
+        },
+        {
+          file: "vercel.json",
+          data: Buffer.from(JSON.stringify({
+            version: 2,
+            public: true,
+          }, null, 2)).toString("base64"),
         },
       ];
 
@@ -89,6 +122,11 @@ export const triggerDeployment = internalAction({
         project: projectName,
         target: "production",
         files,
+        projectSettings: {
+          framework: null,
+          buildCommand: null,
+          outputDirectory: null,
+        },
       };
 
       // Create deployment with team scope if provided
