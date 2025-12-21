@@ -60,6 +60,7 @@ export const isProviderConnected = query({
       return false;
     }
 
+    // Check providerConnections table
     const connection = await ctx.db
       .query("providerConnections")
       .withIndex("by_user_and_provider", (q) => 
@@ -67,7 +68,24 @@ export const isProviderConnected = query({
       )
       .first();
 
-    return connection !== null;
+    if (connection !== null) {
+      return true;
+    }
+
+    // Special case: Also check vercelConnections table for Vercel
+    if (provider === "vercel") {
+      const vercelConnection = await ctx.db
+        .query("vercelConnections")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .first();
+      
+      // Check if connection has a valid access token and team
+      return vercelConnection !== null && 
+             !!vercelConnection.accessToken && 
+             !!vercelConnection.teamId;
+    }
+
+    return false;
   },
 });
 
