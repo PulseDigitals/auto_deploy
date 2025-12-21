@@ -25,10 +25,26 @@ export const createVercelProject = internalAction({
     const api = vercelClient(accessToken);
 
     try {
-      // Create project with team scope if provided
-      const endpoint = teamId ? `/v9/projects?teamId=${teamId}` : "/v9/projects";
+      // First, check if project already exists
+      const getEndpoint = teamId 
+        ? `/v9/projects/${name}?teamId=${teamId}` 
+        : `/v9/projects/${name}`;
       
-      const res = await api(endpoint, {
+      const existingRes = await api(getEndpoint, {
+        method: "GET",
+      });
+
+      if (existingRes.ok) {
+        // Project already exists, return it
+        const data = await existingRes.json() as VercelProjectResponse;
+        console.log("Vercel project already exists, reusing:", name);
+        return data;
+      }
+
+      // Project doesn't exist, create it
+      const createEndpoint = teamId ? `/v9/projects?teamId=${teamId}` : "/v9/projects";
+      
+      const res = await api(createEndpoint, {
         method: "POST",
         body: JSON.stringify({
           name,
@@ -42,10 +58,25 @@ export const createVercelProject = internalAction({
       if (!res.ok) {
         const error = await res.text();
         console.error("Vercel project creation failed:", error);
+        
+        // If it's a conflict (409), try to fetch the existing project
+        if (res.status === 409) {
+          console.log("Project was just created by another process, fetching it...");
+          const retryRes = await api(getEndpoint, {
+            method: "GET",
+          });
+          
+          if (retryRes.ok) {
+            const data = await retryRes.json() as VercelProjectResponse;
+            return data;
+          }
+        }
+        
         throw new Error(`Failed to create Vercel project: ${res.status}`);
       }
 
       const data = await res.json() as VercelProjectResponse;
+      console.log("Vercel project created successfully:", name);
       return data;
     } catch (error) {
       console.error("Error creating Vercel project:", error);
