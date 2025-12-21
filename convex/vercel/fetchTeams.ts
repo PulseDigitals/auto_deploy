@@ -69,7 +69,12 @@ export const getAvailableTeams = action({
       });
 
       if (!response.ok) {
-        console.error("Failed to fetch Vercel teams:", response.status);
+        const errorBody = await response.text();
+        console.error("Failed to fetch Vercel teams:", {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorBody,
+        });
         return [];
       }
 

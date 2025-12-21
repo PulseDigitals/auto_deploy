@@ -114,12 +114,13 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
     // Generate code challenge from verifier
     const codeChallenge = await generateCodeChallenge(stateRecord.codeVerifier);
 
-    // Build authorization URL with PKCE
+    // Build authorization URL with PKCE and required scopes
     const params = new URLSearchParams({
       client_id: VERCEL_CLIENT_ID,
       redirect_uri: VERCEL_REDIRECT_URI,
       response_type: "code",
       state,
+      scope: "user", // Request user scope to access team information
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     });
