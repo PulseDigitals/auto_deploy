@@ -137,7 +137,6 @@ export const executeLiveDeployment = internalAction({
         projectName: safeProjectName,
         accessToken: connection.accessToken,
         teamId: connection.teamId,
-        gitUrl: project.gitRepoUrl,
       });
 
       await ctx.runMutation(internal.vercel.liveDeploymentHelpers.updateVercelDeploymentId, {
