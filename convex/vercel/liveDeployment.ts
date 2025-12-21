@@ -63,13 +63,12 @@ export const executeLiveDeployment = internalAction({
       return;
     }
 
-    // Get Vercel OAuth token
-    const connection = await ctx.runQuery(internal.providerTokens.getConnectionWithToken, {
+    // Get Vercel OAuth token from vercelConnections table
+    const vercelConnection = await ctx.runMutation(internal.vercelConnections.getAccessTokenForUser, {
       userId: user._id,
-      provider: "vercel",
     });
 
-    if (!connection) {
+    if (!vercelConnection || !vercelConnection.accessToken) {
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
         message: "ERROR: Vercel not connected. Go to Settings to connect your account.",
@@ -81,6 +80,13 @@ export const executeLiveDeployment = internalAction({
       });
       return;
     }
+
+    // Use vercelConnection for the rest of the deployment
+    const connection = {
+      accessToken: vercelConnection.accessToken,
+      teamId: vercelConnection.teamId,
+      teamSlug: vercelConnection.teamSlug,
+    };
 
     try {
       // Log start
