@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
+import { ExternalLink } from "lucide-react";
 
 type Deployment = {
   _id: string;
   provider: string;
   logs?: string[];
   status: string;
+  productionUrl?: string;
 };
 
 type DeploymentLogModalProps = {
@@ -29,6 +31,21 @@ export default function DeploymentLogModal({ deployment, onClose }: DeploymentLo
         <h2 className="text-lg font-semibold mb-3">
           Deployment Logs – {deployment.provider}
         </h2>
+
+        {deployment.productionUrl && (
+          <a
+            href={deployment.productionUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-3 mb-4 bg-green-500/10 border border-green-500/30 rounded-lg hover:bg-green-500/20 transition group"
+          >
+            <div className="flex-1">
+              <div className="text-xs text-green-400 font-medium mb-1">Live Deployment URL</div>
+              <div className="text-sm text-green-100 font-mono">{deployment.productionUrl}</div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-green-400 group-hover:text-green-300" />
+          </a>
+        )}
 
         <div
           ref={containerRef}

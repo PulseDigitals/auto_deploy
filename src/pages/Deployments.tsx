@@ -13,6 +13,7 @@ type Deployment = {
   logs?: string[];
   platformVersion?: string;
   isSelfDeployment?: boolean;
+  productionUrl?: string;
 };
 
 export default function Deployments() {
