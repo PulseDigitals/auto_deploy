@@ -210,7 +210,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       redirect_uri: VERCEL_REDIRECT_URI,
     });
     
-    const tokenResponse = await fetch("https://api.vercel.com/v2/oauth/access_token", {
+    const tokenResponse = await fetch("https://api.vercel.com/login/oauth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
