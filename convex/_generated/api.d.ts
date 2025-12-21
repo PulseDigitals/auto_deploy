@@ -33,6 +33,7 @@ import type * as users from "../users.js";
 import type * as vercel_client from "../vercel/client.js";
 import type * as vercel_createProject from "../vercel/createProject.js";
 import type * as vercel_deploy from "../vercel/deploy.js";
+import type * as vercel_fetchTeams from "../vercel/fetchTeams.js";
 import type * as vercel_liveDeployment from "../vercel/liveDeployment.js";
 import type * as vercel_liveDeploymentHelpers from "../vercel/liveDeploymentHelpers.js";
 import type * as vercel_liveDeploymentPolling from "../vercel/liveDeploymentPolling.js";
@@ -72,6 +73,7 @@ declare const fullApi: ApiFromModules<{
   "vercel/client": typeof vercel_client;
   "vercel/createProject": typeof vercel_createProject;
   "vercel/deploy": typeof vercel_deploy;
+  "vercel/fetchTeams": typeof vercel_fetchTeams;
   "vercel/liveDeployment": typeof vercel_liveDeployment;
   "vercel/liveDeploymentHelpers": typeof vercel_liveDeploymentHelpers;
   "vercel/liveDeploymentPolling": typeof vercel_liveDeploymentPolling;

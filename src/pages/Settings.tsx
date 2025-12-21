@@ -1,5 +1,5 @@
 import { useAuth } from "@/hooks/use-auth.ts";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -14,6 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import { getOAuthStartUrl } from "@/lib/convex-http.ts";
 
+interface VercelTeam {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,15 +30,19 @@ export default function Settings() {
   const [newReleaseChannel, setNewReleaseChannel] = useState<"stable" | "beta">("stable");
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [showDebugDetails, setShowDebugDetails] = useState(false);
+  const [availableTeams, setAvailableTeams] = useState<VercelTeam[]>([]);
+  const [isFetchingTeams, setIsFetchingTeams] = useState(false);
   
   // Vercel connection queries
   const vercelConnection = useQuery(api.vercelConnections.getVercelConnection, {});
-  const availableTeams = useQuery(api.vercelConnections.getAvailableTeams, {});
   
   // Other queries
   const connections = useQuery(api.providerAuthHelpers.getUserConnections, {});
   const isAdmin = useQuery(api.users.isCurrentUserAdmin, {});
   const releaseStatus = useQuery(api.platformReleases.getReleaseAutomationStatus, {});
+  
+  // Actions
+  const fetchVercelTeams = useAction(api.vercel.fetchTeams.getAvailableTeams);
   
   // Mutations
   const generateOAuthState = useMutation(api.oauth.vercel.generateOAuthState);
@@ -44,6 +54,28 @@ export default function Settings() {
   const checkForReleases = useMutation(api.platformReleases.checkForReleases);
   
   const vercelConnectionOld = connections?.find((c) => c.provider === "vercel");
+  
+  // Fetch teams when connection is established
+  useEffect(() => {
+    const loadTeams = async () => {
+      if (vercelConnection?.hasToken) {
+        setIsFetchingTeams(true);
+        try {
+          const teams = await fetchVercelTeams({});
+          setAvailableTeams(teams);
+        } catch (error) {
+          console.error("Failed to fetch teams:", error);
+          setAvailableTeams([]);
+        } finally {
+          setIsFetchingTeams(false);
+        }
+      } else {
+        setAvailableTeams([]);
+      }
+    };
+    
+    loadTeams();
+  }, [vercelConnection?.hasToken, fetchVercelTeams]);
   
   // Handle OAuth callback success/error messages
   useEffect(() => {
@@ -413,12 +445,19 @@ export default function Settings() {
                             Choose where to install Auto Deploy
                           </Label>
                           <div className="flex gap-2">
-                            <Select value={selectedTeamId} onValueChange={setSelectedTeamId}>
+                            <Select value={selectedTeamId} onValueChange={setSelectedTeamId} disabled={isFetchingTeams}>
                               <SelectTrigger id="team-select" className="flex-1">
-                                <SelectValue placeholder="Select a team..." />
+                                <SelectValue placeholder={isFetchingTeams ? "Loading teams..." : "Select a team..."} />
                               </SelectTrigger>
                               <SelectContent>
-                                {availableTeams && availableTeams.length > 0 ? (
+                                {isFetchingTeams ? (
+                                  <SelectItem value="loading" disabled>
+                                    <div className="flex items-center gap-2">
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                      Loading teams...
+                                    </div>
+                                  </SelectItem>
+                                ) : availableTeams && availableTeams.length > 0 ? (
                                   availableTeams.map((team) => (
                                     <SelectItem key={team.id} value={team.id}>
                                       {team.name} ({team.slug})
@@ -433,7 +472,7 @@ export default function Settings() {
                             </Select>
                             <Button
                               onClick={handleInstallTeam}
-                              disabled={!selectedTeamId}
+                              disabled={!selectedTeamId || isFetchingTeams}
                             >
                               Install to Team
                             </Button>

@@ -60,64 +60,27 @@ export const getVercelConnection = query({
 /**
  * Get Vercel teams available to connected user
  * Fetches from Vercel API using stored access token
+ * Note: This is an internal query (for use by actions)
  */
-export const getAvailableTeams = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Not authenticated");
-    }
-
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
-      .unique();
-
-    if (!user) {
-      throw new Error("User not found");
-    }
-
+export const getVercelConnectionForAction = internalMutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
     const connection = await ctx.db
       .query("vercelConnections")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
       .first();
 
     if (!connection) {
-      return [];
+      return null;
     }
 
-    try {
-      // Fetch teams from Vercel API
-      const response = await fetch("https://api.vercel.com/v2/teams", {
-        headers: {
-          Authorization: `Bearer ${connection.accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        console.error("Failed to fetch Vercel teams:", response.status);
-        return [];
-      }
-
-      const data = await response.json() as {
-        teams: Array<{
-          id: string;
-          slug: string;
-          name: string;
-          createdAt: number;
-        }>;
-      };
-
-      return data.teams.map((team) => ({
-        id: team.id,
-        slug: team.slug,
-        name: team.name,
-      }));
-    } catch (error) {
-      console.error("Error fetching Vercel teams:", error);
-      return [];
-    }
+    return {
+      accessToken: connection.accessToken,
+      teamId: connection.teamId,
+      teamSlug: connection.teamSlug,
+    };
   },
 });
 
