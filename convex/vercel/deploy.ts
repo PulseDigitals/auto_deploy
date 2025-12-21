@@ -29,8 +29,8 @@ export const triggerDeployment = internalAction({
     const api = vercelClient(accessToken);
 
     try {
-      // Create a minimal static site deployment with proper Vercel structure
-      // Vercel needs at least an index.html and optionally a vercel.json for configuration
+      // Create a minimal static site deployment
+      // For static sites, we just need the HTML file
       const files = [
         {
           file: "index.html",
@@ -107,26 +107,13 @@ export const triggerDeployment = internalAction({
 </body>
 </html>`).toString("base64"),
         },
-        {
-          file: "vercel.json",
-          data: Buffer.from(JSON.stringify({
-            version: 2,
-            public: true,
-          }, null, 2)).toString("base64"),
-        },
       ];
 
       // Build deployment payload
       const payload: Record<string, unknown> = {
         name: projectName,
-        project: projectName,
-        target: "production",
         files,
-        projectSettings: {
-          framework: null,
-          buildCommand: null,
-          outputDirectory: null,
-        },
+        target: "production",
       };
 
       // Create deployment with team scope if provided
