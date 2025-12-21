@@ -7,6 +7,7 @@ const navItems = [
   { label: "Dashboard", to: "/dashboard" },
   { label: "Projects", to: "/dashboard/projects" },
   { label: "Deployments", to: "/dashboard/deployments" },
+  { label: "Auto-Deploy", to: "/dashboard/auto-deploy" },
   { label: "Settings", to: "/dashboard/settings" },
 ];
 

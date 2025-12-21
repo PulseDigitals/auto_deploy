@@ -7,6 +7,7 @@ import ProjectDetail from "./pages/ProjectDetail.tsx";
 import Deployments from "./pages/Deployments.tsx";
 import Settings from "./pages/Settings.tsx";
 import Pricing from "./pages/Pricing.tsx";
+import AutoDeploy from "./pages/AutoDeploy.tsx";
 
 export function AppRouter() {
   return (
@@ -20,6 +21,7 @@ export function AppRouter() {
           <Route path="projects" element={<Projects />} />
           <Route path="projects/:id" element={<ProjectDetail />} />
           <Route path="deployments" element={<Deployments />} />
+          <Route path="auto-deploy" element={<AutoDeploy />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

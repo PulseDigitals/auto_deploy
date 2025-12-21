@@ -1,6 +1,16 @@
 import { mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+/**
+ * Generates a URL for uploading files to Convex storage
+ */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 // MVP stub for ZIP upload metadata
 // TODO: Implement real ZIP extraction and AI manifest generation
 export const uploadZipMetadata = mutation({

@@ -57,6 +57,9 @@ export default defineSchema({
     productionUrl: v.optional(v.string()), // Real production URL from provider (for live deployments)
     vercelProjectId: v.optional(v.string()), // Real Vercel project ID (for live deployments)
     vercelDeploymentId: v.optional(v.string()), // Real Vercel deployment ID (for live deployments)
+    deploymentSource: v.optional(v.union(v.literal("zip"), v.literal("github"))), // "zip" | "github"
+    sourceStorageId: v.optional(v.id("_storage")), // Storage ID for uploaded ZIP file
+    sourceGitHubUrl: v.optional(v.string()), // GitHub repository URL
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
     status: v.string(), // "pending" | "running" | "success" | "failed"
