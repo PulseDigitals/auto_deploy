@@ -7,7 +7,7 @@ import type { Id } from "../_generated/dataModel.d.ts";
 
 /**
  * Orchestrates a live Vercel deployment
- * SECURITY: Requires OAuth token from providerConnections
+ * SECURITY: Requires OAuth token from vercelConnections
  */
 export const executeLiveDeployment = internalAction({
   args: {
@@ -30,42 +30,27 @@ export const executeLiveDeployment = internalAction({
       return;
     }
 
-    // Get OAuth connection
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId,
-        message: "ERROR: User not authenticated for live deployment",
-      });
-      await ctx.runMutation(internal.deployments.updateStatus, {
-        deploymentId,
-        status: "failed",
-        log: "Live deployment failed: User not authenticated",
-      });
-      return;
-    }
-
-    // Get user from database
-    const user = await ctx.runQuery(internal.users.getUserByToken, {
-      tokenIdentifier: identity.tokenIdentifier,
+    // Get project details to find the user
+    const project = await ctx.runQuery(internal.vercel.liveDeploymentHelpers.getProjectDetails, {
+      projectId: deployment.projectId,
     });
 
-    if (!user) {
+    if (!project || !project.userId) {
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
-        message: "ERROR: User not found in database",
+        message: "ERROR: Project or project owner not found",
       });
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId,
         status: "failed",
-        log: "Live deployment failed: User not found",
+        log: "Live deployment failed: Project owner not found",
       });
       return;
     }
 
-    // Get Vercel OAuth token from vercelConnections table
+    // Get Vercel OAuth token from vercelConnections table using project's userId
     const vercelConnection = await ctx.runMutation(internal.vercelConnections.getAccessTokenForUser, {
-      userId: user._id,
+      userId: project.userId as Id<"users">,
     });
 
     if (!vercelConnection || !vercelConnection.accessToken) {
