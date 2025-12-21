@@ -106,14 +106,29 @@ export const pollVercelStatus = internalAction({
       }
 
       if (status.readyState === "ERROR" || status.readyState === "CANCELED") {
+        const errorDetails = status.errorMessage 
+          ? ` - ${status.errorMessage}${status.errorCode ? ` (${status.errorCode})` : ''}`
+          : '';
+        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId,
-          message: `❌ Deployment ${status.readyState.toLowerCase()} on Vercel`,
+          message: `❌ Deployment ${status.readyState.toLowerCase()} on Vercel${errorDetails}`,
         });
+        
+        // Log full error details for debugging
+        if (status.errorMessage) {
+          console.error("Vercel deployment error:", {
+            deploymentId: vercelDeploymentId,
+            errorMessage: status.errorMessage,
+            errorCode: status.errorCode,
+            readyState: status.readyState,
+          });
+        }
+        
         await ctx.runMutation(internal.deployments.updateStatus, {
           deploymentId,
           status: "failed",
-          log: `Deployment ${status.readyState.toLowerCase()}`,
+          log: `Deployment ${status.readyState.toLowerCase()}${errorDetails}`,
         });
         return;
       }

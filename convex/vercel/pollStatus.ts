@@ -12,6 +12,8 @@ interface VercelDeploymentStatus {
   createdAt: number;
   buildingAt?: number;
   ready?: number;
+  errorMessage?: string; // Error message from Vercel
+  errorCode?: string; // Error code from Vercel
 }
 
 /**
@@ -42,6 +44,12 @@ export const pollDeploymentStatus = internalAction({
       }
 
       const data = await res.json() as VercelDeploymentStatus;
+      
+      // Log full deployment status for debugging errors
+      if (data.readyState === "ERROR" || data.readyState === "CANCELED") {
+        console.error("Vercel deployment failed:", JSON.stringify(data, null, 2));
+      }
+      
       return data;
     } catch (error) {
       console.error("Error polling Vercel deployment status:", error);
