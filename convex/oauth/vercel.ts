@@ -120,7 +120,7 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
       redirect_uri: VERCEL_REDIRECT_URI,
       response_type: "code",
       state,
-      scope: "user", // Request user scope to access team information
+      scope: "openid profile email offline_access", // Request necessary scopes for user and team info
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     });
