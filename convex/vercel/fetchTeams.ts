@@ -12,6 +12,7 @@
 import { action } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
 import { ConvexError } from "convex/values";
+import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
 interface VercelTeam {
   id: string;
@@ -24,12 +25,18 @@ interface VercelTeamsResponse {
   teams: VercelTeam[];
 }
 
+interface VercelConnectionData {
+  accessToken: string;
+  teamId?: string | undefined;
+  teamSlug?: string | undefined;
+}
+
 /**
  * Fetch available Vercel teams for current user
  */
 export const getAvailableTeams = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<Array<{ id: string; slug: string; name: string }>> => {
     // Get current user
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
@@ -40,7 +47,7 @@ export const getAvailableTeams = action({
     }
 
     // Get user from database
-    const user = await ctx.runQuery(internal.users.getUserByToken, {
+    const user: Doc<"users"> | null = await ctx.runQuery(internal.users.getUserByToken, {
       tokenIdentifier: identity.tokenIdentifier,
     });
 
@@ -52,7 +59,7 @@ export const getAvailableTeams = action({
     }
 
     // Get Vercel connection
-    const connection = await ctx.runMutation(internal.vercelConnections.getVercelConnectionForAction, {
+    const connection: VercelConnectionData | null = await ctx.runMutation(internal.vercelConnections.getVercelConnectionForAction, {
       userId: user._id,
     });
 
@@ -60,8 +67,26 @@ export const getAvailableTeams = action({
       return [];
     }
 
+    console.log("[fetchTeams] Connection info:", {
+      hasToken: !!connection.accessToken,
+      teamId: connection.teamId,
+      teamSlug: connection.teamSlug,
+    });
+
+    // If the connection already has a teamId and teamSlug, return that team
+    if (connection.teamId && connection.teamSlug) {
+      console.log("[fetchTeams] Returning pre-selected team:", connection.teamSlug);
+      return [
+        {
+          id: connection.teamId,
+          slug: connection.teamSlug,
+          name: connection.teamSlug,
+        },
+      ];
+    }
+
     try {
-      // First, fetch the authenticated user to get their default team and personal account
+      // Try to fetch user first to get personal account
       const userResponse = await fetch("https://api.vercel.com/v2/user", {
         headers: {
           Authorization: `Bearer ${connection.accessToken}`,
@@ -75,7 +100,6 @@ export const getAvailableTeams = action({
           statusText: userResponse.statusText,
           body: errorBody,
         });
-        return [];
       }
 
       const userData = await userResponse.json() as {
@@ -90,7 +114,7 @@ export const getAvailableTeams = action({
 
       console.log("Vercel user data:", userData);
 
-      // Now try to fetch teams - this might require the user to have team memberships
+      // Try to fetch teams
       const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
         headers: {
           Authorization: `Bearer ${connection.accessToken}`,
@@ -114,6 +138,7 @@ export const getAvailableTeams = action({
           slug: team.slug,
           name: team.name,
         })));
+        console.log(`[fetchTeams] Successfully fetched ${teamsData.teams.length} teams`);
       } else {
         const errorBody = await teamsResponse.text();
         console.log("Could not fetch teams (this is OK, user might not have team access):", {

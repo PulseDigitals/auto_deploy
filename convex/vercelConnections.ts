@@ -58,9 +58,8 @@ export const getVercelConnection = query({
 });
 
 /**
- * Get Vercel teams available to connected user
- * Fetches from Vercel API using stored access token
- * Note: This is an internal query (for use by actions)
+ * Get Vercel connection for actions
+ * Note: This is an internal mutation (for use by actions)
  */
 export const getVercelConnectionForAction = internalMutation({
   args: {
@@ -97,6 +96,8 @@ export const upsertVercelConnection = internalMutation({
     scope: v.optional(v.string()),
     refreshToken: v.optional(v.string()),
     expiresAt: v.optional(v.number()),
+    teamId: v.optional(v.string()),
+    teamSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -116,6 +117,8 @@ export const upsertVercelConnection = internalMutation({
         scope: args.scope,
         refreshToken: args.refreshToken,
         expiresAt: args.expiresAt,
+        teamId: args.teamId,
+        teamSlug: args.teamSlug,
         updatedAt: now,
       });
       return existing._id;
@@ -129,6 +132,8 @@ export const upsertVercelConnection = internalMutation({
         scope: args.scope,
         refreshToken: args.refreshToken,
         expiresAt: args.expiresAt,
+        teamId: args.teamId,
+        teamSlug: args.teamSlug,
         createdAt: now,
         updatedAt: now,
       });

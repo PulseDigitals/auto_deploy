@@ -114,20 +114,19 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
     // Generate code challenge from verifier
     const codeChallenge = await generateCodeChallenge(stateRecord.codeVerifier);
 
-    // Build authorization URL with PKCE and required scopes
+    // Build authorization URL with PKCE
     const params = new URLSearchParams({
       client_id: VERCEL_CLIENT_ID,
       redirect_uri: VERCEL_REDIRECT_URI,
       response_type: "code",
       state,
-      scope: "openid profile email offline_access", // Request necessary scopes for user and team info
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     });
 
     const authUrl = `https://vercel.com/oauth/authorize?${params.toString()}`;
     
-    console.log("[OAuth Start] Redirecting to Vercel with PKCE");
+    console.log("[OAuth Start] Redirecting to Vercel OAuth");
     console.log("[OAuth Start] Redirect URI:", VERCEL_REDIRECT_URI);
 
     // Redirect browser to Vercel OAuth page
@@ -299,6 +298,14 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
     };
 
     console.log("[OAuth Callback] Token exchange successful");
+    console.log("[OAuth Callback] Token data received:", {
+      has_access_token: !!tokenData.access_token,
+      token_type: tokenData.token_type,
+      installation_id: tokenData.installation_id,
+      user_id: tokenData.user_id,
+      team_id: tokenData.team_id,
+      scope: tokenData.scope,
+    });
 
     if (!tokenData.access_token) {
       console.error("[OAuth Callback] No access token in response");
@@ -331,6 +338,8 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       vercelUserId: tokenData.user_id,
       tokenType: tokenData.token_type,
       scope: tokenData.scope,
+      teamId: tokenData.team_id,
+      installationId: tokenData.installation_id,
     });
 
     console.log("[OAuth Callback] Connection persisted successfully");
@@ -544,14 +553,20 @@ export const persistConnection = internalMutation({
     vercelUserId: v.optional(v.string()),
     tokenType: v.optional(v.string()),
     scope: v.optional(v.string()),
+    teamId: v.optional(v.string()),
+    installationId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    console.log("[persistConnection] Storing connection with teamId:", args.teamId);
+    
     await ctx.runMutation(internal.vercelConnections.upsertVercelConnection, {
       userId: args.userId,
       accessToken: args.accessToken,
       vercelUserId: args.vercelUserId,
       tokenType: args.tokenType,
       scope: args.scope,
+      teamId: args.teamId,
+      teamSlug: undefined, // Will be populated by fetchTeams action
     });
   },
 });
