@@ -208,6 +208,7 @@ export const handleVercelCallback = httpAction(async (ctx, request) => {
       client_secret: VERCEL_CLIENT_SECRET,
       code: code,
       redirect_uri: VERCEL_REDIRECT_URI,
+      grant_type: "authorization_code",
     });
     
     const tokenResponse = await fetch("https://api.vercel.com/login/oauth/token", {
