@@ -96,6 +96,7 @@ export const createDeployment = mutation({
 
     const deploymentId = await ctx.db.insert("deployments", {
       projectId,
+      userId: user?._id, // Store the user ID who initiated the deployment
       provider,
       providerId,
       deploymentMode: mode,

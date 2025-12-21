@@ -35,22 +35,36 @@ export const executeLiveDeployment = internalAction({
       projectId: deployment.projectId,
     });
 
-    if (!project || !project.userId) {
+    if (!project) {
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
-        message: "ERROR: Project or project owner not found",
+        message: "ERROR: Project not found",
       });
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId,
         status: "failed",
-        log: "Live deployment failed: Project owner not found",
+        log: "Live deployment failed: Project not found",
       });
       return;
     }
 
-    // Get Vercel OAuth token from vercelConnections table using project's userId
+    // Get the user ID from the deployment (who initiated it)
+    if (!deployment.userId) {
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId,
+        message: "ERROR: Deployment has no associated user. Please try again.",
+      });
+      await ctx.runMutation(internal.deployments.updateStatus, {
+        deploymentId,
+        status: "failed",
+        log: "Live deployment failed: No user associated with deployment",
+      });
+      return;
+    }
+
+    // Get Vercel OAuth token from vercelConnections table using deployment's userId
     const vercelConnection = await ctx.runMutation(internal.vercelConnections.getAccessTokenForUser, {
-      userId: project.userId as Id<"users">,
+      userId: deployment.userId,
     });
 
     if (!vercelConnection || !vercelConnection.accessToken) {

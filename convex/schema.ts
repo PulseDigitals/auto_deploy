@@ -48,6 +48,7 @@ export default defineSchema({
 
   deployments: defineTable({
     projectId: v.id("projects"),
+    userId: v.optional(v.id("users")), // User who initiated the deployment (required for live deployments)
     provider: v.string(), // Human-readable name e.g. "Vercel"
     providerId: v.optional(v.string()), // "vercel" | "netlify" | "render" | "railway" | "aws"
     deploymentMode: v.optional(v.union(v.literal("simulation"), v.literal("live"))), // "simulation" | "live" (optional for backward compatibility)
