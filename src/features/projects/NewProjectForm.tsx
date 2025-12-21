@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { toast } from "sonner";
-import { Upload, Loader2 } from "lucide-react";
+import { Loader2, Rocket } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface NewProjectFormProps {
   onSuccess: () => void;
@@ -14,11 +15,9 @@ interface NewProjectFormProps {
 export default function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   const [name, setName] = useState("");
   const [gitRepoUrl, setGitRepoUrl] = useState("");
-  const [zipFile, setZipFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const createProject = useMutation(api.projects.createProject);
-  const uploadZipMetadata = useMutation(api.zipUpload.uploadZipMetadata);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,29 +31,16 @@ export default function NewProjectForm({ onSuccess }: NewProjectFormProps) {
 
     try {
       // Create the project
-      const projectId = await createProject({
+      await createProject({
         name: name.trim(),
         gitRepoUrl: gitRepoUrl.trim() || undefined,
       });
 
-      // If a ZIP file was selected, upload metadata (MVP stub)
-      if (zipFile) {
-        await uploadZipMetadata({
-          projectId,
-          fileName: zipFile.name,
-          size: zipFile.size,
-        });
-        toast.success(
-          "Project created! ZIP received; AI analysis stubbed for now."
-        );
-      } else {
-        toast.success("Project created successfully!");
-      }
+      toast.success("Project created successfully!");
 
       // Reset form
       setName("");
       setGitRepoUrl("");
-      setZipFile(null);
       onSuccess();
     } catch (error) {
       console.error("Failed to create project:", error);
@@ -89,25 +75,24 @@ export default function NewProjectForm({ onSuccess }: NewProjectFormProps) {
         />
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="zipFile">
-          Upload ZIP File (Optional - MVP stub)
-        </Label>
-        <div className="flex items-center gap-2">
-          <Input
-            id="zipFile"
-            type="file"
-            accept=".zip"
-            onChange={(e) => setZipFile(e.target.files?.[0] || null)}
-            disabled={isLoading}
-            className="cursor-pointer"
-          />
-          {zipFile && <Upload className="h-4 w-4 text-green-500" />}
+      <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-lg">
+        <div className="flex items-start gap-2">
+          <Rocket className="h-4 w-4 text-indigo-400 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-indigo-300 mb-1">
+              Want to deploy your codebase?
+            </p>
+            <p className="text-xs text-slate-400 mb-2">
+              Upload ZIP files or connect GitHub repos with full build support
+            </p>
+            <Link
+              to="/dashboard/auto-deploy"
+              className="text-xs text-indigo-400 hover:text-indigo-300 underline"
+            >
+              Go to Auto-Deploy →
+            </Link>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          MVP: Only metadata is uploaded. Full ZIP extraction and AI manifest
-          generation coming soon.
-        </p>
       </div>
 
       <Button type="submit" disabled={isLoading} className="w-full">
