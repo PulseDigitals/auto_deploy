@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs.tsx";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
-import { Upload, Github, Loader2 } from "lucide-react";
+import { Upload, Github, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 
 export default function AutoDeployWizard() {
   const [projectName, setProjectName] = useState("");
@@ -18,6 +19,9 @@ export default function AutoDeployWizard() {
   const generateUploadUrl = useMutation(api.zipUpload.generateUploadUrl);
   const createAutoDeployment = useMutation(api.autoDeployment.createAutoDeployment);
   const triggerAutoDeployment = useMutation(api.autoDeploymentTrigger.triggerAutoDeployment);
+  const vercelConnection = useQuery(api.vercelConnections.getVercelConnection);
+
+  const isVercelConnected = vercelConnection?.hasToken || false;
 
   const handleZipDeploy = async () => {
     if (!projectName || !zipFile) {
@@ -106,6 +110,24 @@ export default function AutoDeployWizard() {
         </p>
       </div>
 
+      {!isVercelConnected && (
+        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
+          <AlertCircle className="h-5 w-5 text-amber-400 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-amber-300 mb-1">Vercel Not Connected</h3>
+            <p className="text-sm text-slate-400 mb-2">
+              You need to connect your Vercel account before you can deploy.
+            </p>
+            <Link
+              to="/dashboard/settings"
+              className="text-sm text-amber-400 hover:text-amber-300 underline"
+            >
+              Go to Settings to connect Vercel →
+            </Link>
+          </div>
+        </div>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Choose Deployment Source</CardTitle>
@@ -154,7 +176,7 @@ export default function AutoDeployWizard() {
 
               <Button
                 onClick={handleZipDeploy}
-                disabled={!projectName || !zipFile || isDeploying}
+                disabled={!projectName || !zipFile || isDeploying || !isVercelConnected}
                 className="w-full"
               >
                 {isDeploying ? (
@@ -169,6 +191,13 @@ export default function AutoDeployWizard() {
                   </>
                 )}
               </Button>
+              {(!projectName || !zipFile || !isVercelConnected) && !isDeploying && (
+                <p className="text-xs text-slate-400 mt-2">
+                  {!isVercelConnected ? "⚠️ Connect Vercel first" : 
+                   !projectName ? "⚠️ Enter project name" : 
+                   !zipFile ? "⚠️ Select ZIP file" : ""}
+                </p>
+              )}
             </TabsContent>
 
             <TabsContent value="github" className="space-y-4">
@@ -197,7 +226,7 @@ export default function AutoDeployWizard() {
 
               <Button
                 onClick={handleGitHubDeploy}
-                disabled={!projectName || !githubUrl || isDeploying}
+                disabled={!projectName || !githubUrl || isDeploying || !isVercelConnected}
                 className="w-full"
               >
                 {isDeploying ? (
@@ -212,6 +241,13 @@ export default function AutoDeployWizard() {
                   </>
                 )}
               </Button>
+              {(!projectName || !githubUrl || !isVercelConnected) && !isDeploying && (
+                <p className="text-xs text-slate-400 mt-2">
+                  {!isVercelConnected ? "⚠️ Connect Vercel first" : 
+                   !projectName ? "⚠️ Enter project name" : 
+                   !githubUrl ? "⚠️ Enter GitHub URL" : ""}
+                </p>
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
