@@ -73,72 +73,25 @@ export const getAvailableTeams = action({
       teamSlug: connection.teamSlug,
     });
 
-    try {
-      // If we have a teamId (from integration installation), fetch that specific team
-      if (connection.teamId) {
-        console.log("[fetchTeams] Fetching team details for:", connection.teamId);
-        
-        const teamResponse = await fetch(`https://api.vercel.com/v2/teams/${connection.teamId}`, {
-          headers: {
-            Authorization: `Bearer ${connection.accessToken}`,
-          },
-        });
-
-        if (teamResponse.ok) {
-          const teamData = await teamResponse.json() as VercelTeam;
-          console.log("[fetchTeams] Successfully fetched team:", teamData.slug);
-          
-          // Update the connection with the team slug for future use
-          await ctx.runMutation(internal.vercelConnections.updateTeamSlug, {
-            userId: user._id,
-            teamSlug: teamData.slug,
-          });
-          
-          return [
-            {
-              id: teamData.id,
-              slug: teamData.slug,
-              name: teamData.name,
-            },
-          ];
-        } else {
-          const errorBody = await teamResponse.text();
-          console.error("Failed to fetch team details:", {
-            status: teamResponse.status,
-            body: errorBody,
-          });
-        }
-      }
-
-      // Fallback: Try to list all teams (may not work with integration tokens)
-      console.log("[fetchTeams] Attempting to list all teams");
-      const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
-        headers: {
-          Authorization: `Bearer ${connection.accessToken}`,
+    // If we have a teamId from integration installation, return it directly
+    // Integration tokens don't have permission to fetch team metadata via API
+    // but the team_id is all we need for deployments
+    if (connection.teamId) {
+      console.log("[fetchTeams] Using team from integration installation:", connection.teamId);
+      
+      const teamName = connection.teamSlug || connection.teamId;
+      
+      return [
+        {
+          id: connection.teamId,
+          slug: connection.teamSlug || connection.teamId,
+          name: teamName,
         },
-      });
-
-      if (!teamsResponse.ok) {
-        const errorBody = await teamsResponse.text();
-        console.error("Failed to fetch Vercel teams:", {
-          status: teamsResponse.status,
-          statusText: teamsResponse.statusText,
-          body: errorBody,
-        });
-        return [];
-      }
-
-      const teamsData = await teamsResponse.json() as VercelTeamsResponse;
-      console.log(`[fetchTeams] Successfully fetched ${teamsData.teams.length} teams`);
-
-      return teamsData.teams.map((team) => ({
-        id: team.id,
-        slug: team.slug,
-        name: team.name,
-      }));
-    } catch (error) {
-      console.error("Error fetching Vercel teams:", error);
-      return [];
+      ];
     }
+
+    // No team selected
+    console.log("[fetchTeams] No team found in connection");
+    return [];
   },
 });
