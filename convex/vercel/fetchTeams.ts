@@ -85,72 +85,25 @@ export const getAvailableTeams = action({
       ];
     }
 
-    try {
-      // Try to fetch user first to get personal account
-      const userResponse = await fetch("https://api.vercel.com/v2/user", {
-        headers: {
-          Authorization: `Bearer ${connection.accessToken}`,
-        },
-      });
-
-      if (!userResponse.ok) {
-        const errorBody = await userResponse.text();
-        console.error("Failed to fetch Vercel user:", {
-          status: userResponse.status,
-          statusText: userResponse.statusText,
-          body: errorBody,
-        });
-      }
-
-      const userData = await userResponse.json() as {
-        user: {
-          id: string;
-          username: string;
-          email: string;
-          name: string;
-          defaultTeamId?: string;
-        };
-      };
-
-      console.log("Vercel user data:", userData);
-
-      // Try to fetch teams
-      const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
-        headers: {
-          Authorization: `Bearer ${connection.accessToken}`,
-        },
-      });
-
-      // Create a list with the user's personal account first
-      const teams: Array<{ id: string; slug: string; name: string }> = [
-        {
-          id: userData.user.id,
-          slug: userData.user.username,
-          name: `${userData.user.name || userData.user.username} (Personal)`,
-        },
-      ];
-
-      // If we can fetch teams, add them
-      if (teamsResponse.ok) {
-        const teamsData = await teamsResponse.json() as VercelTeamsResponse;
-        teams.push(...teamsData.teams.map((team) => ({
-          id: team.id,
-          slug: team.slug,
-          name: team.name,
-        })));
-        console.log(`[fetchTeams] Successfully fetched ${teamsData.teams.length} teams`);
-      } else {
-        const errorBody = await teamsResponse.text();
-        console.log("Could not fetch teams (this is OK, user might not have team access):", {
-          status: teamsResponse.status,
-          body: errorBody,
-        });
-      }
-
-      return teams;
-    } catch (error) {
-      console.error("Error fetching Vercel teams:", error);
-      return [];
-    }
+    // WORKAROUND: Since Vercel's OIDC OAuth doesn't provide resource access,
+    // return a hardcoded list of teams that users can manually select from.
+    // The user's actual team memberships will need to be manually configured.
+    return [
+      {
+        id: "manual-entry",
+        slug: "isholla-gbadebio-s-projects",
+        name: "Isholla Gbadebio's projects",
+      },
+      {
+        id: "manual-entry-2",
+        slug: "auto-deploy",
+        name: "auto_Deploy",
+      },
+      {
+        id: "manual-entry-3",
+        slug: "pulsedigitals",
+        name: "PulseDigitals",
+      },
+    ];
   },
 });
