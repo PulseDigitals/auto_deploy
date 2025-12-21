@@ -127,6 +127,23 @@ export const executeLiveDeployment = internalAction({
         message: `✓ Vercel project created: ${vercelProject.name}`,
       });
 
+      // Step 1.5: Update project settings to disable builds (pure static HTML)
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId,
+        message: "Configuring project for static deployment...",
+      });
+
+      await ctx.runAction(internal.vercel.updateProject.updateProjectSettings, {
+        projectName: safeProjectName,
+        accessToken: connection.accessToken,
+        teamId: connection.teamId,
+      });
+
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId,
+        message: "✓ Project configured for static deployment",
+      });
+
       // Step 2: Trigger deployment
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
