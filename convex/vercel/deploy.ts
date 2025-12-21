@@ -29,176 +29,98 @@ export const triggerDeployment = internalAction({
     const api = vercelClient(accessToken);
 
     try {
-      // Create a minimal static site deployment
-      // Just package.json and index.html - let Vercel use the project's existing build settings
+      // Create a minimal static site deployment with just an index.html
+      // No build process, no package.json - just pure static HTML
+      const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Deploy Agent</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .container {
+      text-align: center;
+      padding: 3rem;
+      max-width: 600px;
+    }
+    h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    p {
+      font-size: 1.5rem;
+      opacity: 0.95;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: rgba(255, 255, 255, 0.25);
+      border-radius: 9999px;
+      font-size: 1rem;
+      font-weight: 600;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .details {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .detail-item {
+      margin: 0.75rem 0;
+      opacity: 0.85;
+      font-size: 1.125rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 AI Deploy Agent</h1>
+    <p>Your deployment was successful!</p>
+    <div class="badge">✓ Live on Vercel</div>
+    <div class="details">
+      <div class="detail-item">Powered by AI Deploy Agent</div>
+      <div class="detail-item">Deployed with ❤️ to Vercel</div>
+    </div>
+  </div>
+</body>
+</html>`;
+
       const files = [
         {
           file: "index.html",
-          data: Buffer.from(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Deploy Agent</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .container {
-      text-align: center;
-      padding: 3rem;
-      max-width: 600px;
-    }
-    h1 {
-      font-size: 3.5rem;
-      margin-bottom: 1rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    p {
-      font-size: 1.5rem;
-      opacity: 0.95;
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-    .badge {
-      display: inline-block;
-      padding: 0.75rem 1.5rem;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 9999px;
-      font-size: 1rem;
-      font-weight: 600;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .details {
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .detail-item {
-      margin: 0.75rem 0;
-      opacity: 0.85;
-      font-size: 1.125rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🚀 AI Deploy Agent</h1>
-    <p>Your deployment was successful!</p>
-    <div class="badge">✓ Live on Vercel</div>
-    <div class="details">
-      <div class="detail-item">Powered by AI Deploy Agent</div>
-      <div class="detail-item">Deployed with ❤️ to Vercel</div>
-    </div>
-  </div>
-</body>
-</html>`).toString("base64"),
-        },
-        {
-          file: "dist/index.html",
-          data: Buffer.from(`<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Deploy Agent</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    .container {
-      text-align: center;
-      padding: 3rem;
-      max-width: 600px;
-    }
-    h1 {
-      font-size: 3.5rem;
-      margin-bottom: 1rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-    p {
-      font-size: 1.5rem;
-      opacity: 0.95;
-      margin-bottom: 2rem;
-      line-height: 1.6;
-    }
-    .badge {
-      display: inline-block;
-      padding: 0.75rem 1.5rem;
-      background: rgba(255, 255, 255, 0.25);
-      border-radius: 9999px;
-      font-size: 1rem;
-      font-weight: 600;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .details {
-      margin-top: 3rem;
-      padding-top: 2rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    .detail-item {
-      margin: 0.75rem 0;
-      opacity: 0.85;
-      font-size: 1.125rem;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>🚀 AI Deploy Agent</h1>
-    <p>Your deployment was successful!</p>
-    <div class="badge">✓ Live on Vercel</div>
-    <div class="details">
-      <div class="detail-item">Powered by AI Deploy Agent</div>
-      <div class="detail-item">Deployed with ❤️ to Vercel</div>
-    </div>
-  </div>
-</body>
-</html>`).toString("base64"),
-        },
-        {
-          file: "package.json",
-          data: Buffer.from(JSON.stringify({
-            name: projectName,
-            version: "1.0.0",
-            scripts: {
-              build: "mkdir -p dist && cp index.html dist/index.html",
-            },
-          }, null, 2)).toString("base64"),
+          data: Buffer.from(htmlContent).toString("base64"),
         },
       ];
 
-      // Build deployment payload
+      // Build deployment payload - explicitly set projectSettings to indicate this is a static site
       const payload: Record<string, unknown> = {
         name: projectName,
         files,
         target: "production",
+        projectSettings: {
+          framework: null,
+          buildCommand: null,
+          outputDirectory: null,
+        },
       };
 
       // Create deployment with team scope if provided
