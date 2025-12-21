@@ -5,6 +5,7 @@ import { api } from "@/convex/_generated/api.js";
 
 const navItems = [
   { label: "Dashboard", to: "/dashboard" },
+  { label: "Getting Started", to: "/dashboard/getting-started" },
   { label: "Projects", to: "/dashboard/projects" },
   { label: "Deployments", to: "/dashboard/deployments" },
   { label: "Auto-Deploy", to: "/dashboard/auto-deploy" },
