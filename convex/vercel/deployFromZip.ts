@@ -46,6 +46,7 @@ export const deployFromZip = internalAction({
 
       // Convert files to Vercel format
       const files: Array<{ file: string; data: string; encoding: string }> = [];
+      let totalSize = 0;
       
       for (const entry of zipEntries) {
         if (!entry.isDirectory) {
@@ -55,12 +56,18 @@ export const deployFromZip = internalAction({
             data: content,
             encoding: "utf-8",
           });
+          totalSize += content.length;
         }
       }
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `📤 Uploading ${files.length} files to Vercel...`,
+        message: `✓ Extracted ${files.length} files (${(totalSize / 1024 / 1024).toFixed(2)} MB)`,
+      });
+
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `📤 Uploading to Vercel and starting build process...`,
       });
 
       // Deploy to Vercel
@@ -96,6 +103,16 @@ export const deployFromZip = internalAction({
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `✓ Deployment created: ${data.id}`,
+      });
+
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🔨 Vercel is now building your application...`,
+      });
+
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `⏳ This may take 2-5 minutes depending on project size`,
       });
 
       // Update deployment record

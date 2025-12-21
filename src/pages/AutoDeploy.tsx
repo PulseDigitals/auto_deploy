@@ -218,12 +218,22 @@ export default function AutoDeployWizard() {
       </Card>
 
       <div className="mt-6 p-4 bg-slate-900 border border-slate-800 rounded-lg">
-        <h3 className="font-semibold mb-2">💡 Tips</h3>
+        <h3 className="font-semibold mb-2">💡 How It Works</h3>
+        <ul className="text-sm text-slate-400 space-y-2">
+          <li><strong className="text-slate-300">ZIP Upload:</strong> Your entire codebase is extracted and deployed to Vercel with full build support (npm install, build commands, etc.)</li>
+          <li><strong className="text-slate-300">GitHub Repo:</strong> Vercel connects directly to your repository for continuous deployment on every push</li>
+          <li><strong className="text-slate-300">Build Process:</strong> Both pathways support full Vite builds with all dependencies</li>
+          <li><strong className="text-slate-300">Status Tracking:</strong> Watch real-time logs in the Deployments page</li>
+        </ul>
+      </div>
+
+      <div className="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-lg">
+        <h3 className="font-semibold mb-2">📝 Requirements</h3>
         <ul className="text-sm text-slate-400 space-y-1">
-          <li>• Your ZIP file should contain package.json at the root level</li>
-          <li>• For GitHub repos, ensure they are public or Vercel-connected</li>
-          <li>• Project names should be lowercase with hyphens</li>
-          <li>• Deployments typically take 2-5 minutes to complete</li>
+          <li>• ZIP file must contain package.json at the root level</li>
+          <li>• GitHub repos must be public or connected to your Vercel account</li>
+          <li>• Project names should be lowercase with hyphens (a-z, 0-9, -)</li>
+          <li>• Deployments typically take 2-5 minutes depending on build size</li>
         </ul>
       </div>
     </div>

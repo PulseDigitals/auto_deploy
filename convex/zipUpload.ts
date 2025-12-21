@@ -3,6 +3,7 @@ import { v } from "convex/values";
 
 /**
  * Generates a URL for uploading files to Convex storage
+ * Used by the Auto-Deploy feature for ZIP uploads
  */
 export const generateUploadUrl = mutation({
   args: {},
@@ -11,8 +12,11 @@ export const generateUploadUrl = mutation({
   },
 });
 
-// MVP stub for ZIP upload metadata
-// TODO: Implement real ZIP extraction and AI manifest generation
+/**
+ * Legacy metadata upload stub - kept for backward compatibility
+ * NOTE: The Auto-Deploy feature now uses full ZIP extraction and deployment
+ * See: convex/vercel/deployFromZip.ts for the complete implementation
+ */
 export const uploadZipMetadata = mutation({
   args: {
     projectId: v.id("projects"),
@@ -20,20 +24,11 @@ export const uploadZipMetadata = mutation({
     size: v.number(),
   },
   handler: async (ctx, args) => {
-    // For now, just log that a ZIP was uploaded
-    // In the future, this will:
-    // 1. Store the ZIP file in Convex file storage
-    // 2. Extract and analyze the contents
-    // 3. Use the AI analyzer (analyzeCodebase action) to generate a manifest
-    
-    console.log("ZIP upload received:", {
+    console.log("Legacy ZIP metadata upload:", {
       projectId: args.projectId,
       fileName: args.fileName,
       size: args.size,
     });
-
-    // Note: No manifest is created here anymore.
-    // User must click "Analyze with AI" to generate the manifest.
     
     return null;
   },
