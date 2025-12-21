@@ -25,13 +25,13 @@ export const PROVIDER_CAPABILITIES: Record<DeploymentProvider, ProviderCapabilit
     environmentVariables: true,
   },
   render: {
-    live: false, // Coming soon
+    live: true, // API Key authentication
     simulation: true,
-    oauth: false,
-    statusPolling: false,
+    oauth: false, // Uses API Key instead
+    statusPolling: true,
     rollback: false,
-    customDomains: false,
-    environmentVariables: false,
+    customDomains: true,
+    environmentVariables: true,
   },
   railway: {
     live: false, // Coming soon
@@ -110,6 +110,16 @@ export async function executeProviderDeployment({
       };
 
     case "render":
+      // Render live deployment will be handled by the Render deployment pipeline
+      return {
+        provider: "render",
+        status: "pending",
+        logs: [`[${new Date().toLocaleTimeString()}] Initiating Render live deployment...`],
+        metadata: {
+          projectId: project.id,
+        },
+      };
+
     case "railway":
     case "netlify":
     case "aws":

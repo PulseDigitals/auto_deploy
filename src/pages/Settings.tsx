@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
 import { getOAuthStartUrl } from "@/lib/convex-http.ts";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 
 interface VercelTeam {
   id: string;
@@ -33,8 +34,16 @@ export default function Settings() {
   const [availableTeams, setAvailableTeams] = useState<VercelTeam[]>([]);
   const [isFetchingTeams, setIsFetchingTeams] = useState(false);
   
+  // Render connection state
+  const [renderApiKey, setRenderApiKey] = useState("");
+  const [showRenderDialog, setShowRenderDialog] = useState(false);
+  const [isConnectingRender, setIsConnectingRender] = useState(false);
+  
   // Vercel connection queries
   const vercelConnection = useQuery(api.vercelConnections.getVercelConnection, {});
+  
+  // Render connection query
+  const renderConnection = useQuery(api.renderConnections.getRenderConnection, {});
   
   // Other queries
   const connections = useQuery(api.providerAuthHelpers.getUserConnections, {});
@@ -43,17 +52,20 @@ export default function Settings() {
   
   // Actions
   const fetchVercelTeams = useAction(api.vercel.fetchTeams.getAvailableTeams);
+  const connectRender = useAction(api.render.validateApiKey.connectRender);
+  const revalidateRender = useAction(api.render.validateApiKey.revalidateRenderConnection);
   
   // Mutations
   const generateOAuthState = useMutation(api.oauth.vercel.generateOAuthState);
   const setInstalledTeam = useMutation(api.vercelConnections.setInstalledTeam);
   const disconnectVercel = useMutation(api.vercelConnections.disconnectVercel);
+  const disconnectRender = useMutation(api.renderConnections.disconnectRender);
   const disconnectProvider = useMutation(api.providerAuthHelpers.disconnectProvider);
   const setAutomationSettings = useMutation(api.platformReleases.setReleaseAutomationSettings);
   const simulateRelease = useMutation(api.platformReleases.simulateNewRelease);
   const checkForReleases = useMutation(api.platformReleases.checkForReleases);
   
-  const vercelConnectionOld = connections?.find((c) => c.provider === "vercel");
+  const vercelConnectionOld = connections?.find((c: { provider: string }) => c.provider === "vercel");
   
   // Fetch teams when connection is established
   useEffect(() => {
@@ -158,6 +170,51 @@ export default function Settings() {
       setSelectedTeamId("");
     } catch (error) {
       toast.error("Failed to install team");
+      console.error(error);
+    }
+  };
+  
+  const handleConnectRender = async () => {
+    if (!renderApiKey.trim()) {
+      toast.error("Please enter your Render API key");
+      return;
+    }
+
+    if (!renderApiKey.startsWith("rnd_")) {
+      toast.error("Invalid API key format. Render API keys start with 'rnd_'");
+      return;
+    }
+
+    setIsConnectingRender(true);
+    try {
+      const result = await connectRender({ apiKey: renderApiKey });
+      toast.success(`Successfully connected to Render! (${result.accountName || result.accountEmail})`);
+      setShowRenderDialog(false);
+      setRenderApiKey("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to connect to Render");
+      console.error(error);
+    } finally {
+      setIsConnectingRender(false);
+    }
+  };
+
+  const handleDisconnectRender = async () => {
+    try {
+      await disconnectRender({});
+      toast.success("Disconnected from Render");
+    } catch (error) {
+      toast.error("Failed to disconnect");
+      console.error(error);
+    }
+  };
+
+  const handleRevalidateRender = async () => {
+    try {
+      const result = await revalidateRender({});
+      toast.success(`Render connection validated! (${result.accountName || result.accountEmail})`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to revalidate connection");
       console.error(error);
     }
   };
@@ -337,17 +394,21 @@ export default function Settings() {
         </Card>
       </div>
 
-      {/* Vercel Connection & Team Installation */}
+      {/* Deployment Providers Section */}
       <div>
-        <h2 className="text-2xl font-bold mb-4">Vercel Connection</h2>
+        <h2 className="text-2xl font-bold mb-4">Deployment Providers</h2>
         <p className="text-muted-foreground mb-6">
-          Connect your Vercel account and select a team for live deployments
+          Connect your deployment accounts to enable live deployments
         </p>
-        
+
         <div className="grid gap-6">
-          {/* Main Connection Card */}
+          {/* Vercel Connection */}
           <Card>
-            <CardContent className="pt-6">
+            <CardHeader>
+              <CardTitle>Vercel</CardTitle>
+              <CardDescription>Deploy to Vercel with OAuth integration</CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="space-y-4">
                 {/* Connection Status */}
                 <div className="flex items-center justify-between">
@@ -489,6 +550,110 @@ export default function Settings() {
             </CardContent>
           </Card>
 
+          {/* Render Connection */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Render</CardTitle>
+              <CardDescription>Deploy to Render with API Key authentication</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Connection Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">R</span>
+                    </div>
+                    <div>
+                      <div className="font-semibold flex items-center gap-2">
+                        Render
+                        {renderConnection?.isValid ? (
+                          <Badge variant="default" className="bg-green-500/20 text-green-300 border-green-500/30">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Connected
+                          </Badge>
+                        ) : renderConnection && !renderConnection.isValid ? (
+                          <Badge variant="destructive" className="bg-red-500/20 text-red-300 border-red-500/30">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Invalid
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-slate-500/20 text-slate-300 border-slate-500/30">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Not Connected
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {renderConnection?.isValid
+                          ? `Connected to ${renderConnection.accountName || renderConnection.accountEmail}`
+                          : renderConnection && !renderConnection.isValid
+                          ? "API key is invalid or expired"
+                          : "Connect to deploy Node.js and Docker services"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    {renderConnection ? (
+                      <>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleRevalidateRender}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Revalidate
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleDisconnectRender}
+                        >
+                          Disconnect
+                        </Button>
+                      </>
+                    ) : (
+                      <Button 
+                        size="sm" 
+                        onClick={() => setShowRenderDialog(true)}
+                        className="gap-2"
+                      >
+                        <Link2 className="h-4 w-4" />
+                        Connect Render
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Connection Details */}
+                {renderConnection?.isValid && (
+                  <div className="border-t border-border pt-4">
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Account</Label>
+                        <p className="mt-1">
+                          {renderConnection.accountName || renderConnection.accountEmail}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">API Key</Label>
+                        <p className="mt-1 font-mono text-xs">
+                          {renderConnection.maskedApiKey}
+                        </p>
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Last Validated</Label>
+                        <p className="mt-1">
+                          {new Date(renderConnection.lastValidatedAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Debug Details (Expandable) */}
           <Card>
             <CardContent className="pt-6">
@@ -509,7 +674,7 @@ export default function Settings() {
               {showDebugDetails && (
                 <div className="mt-4 space-y-3 text-sm">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Connection Status</Label>
+                    <Label className="text-xs text-muted-foreground">Vercel Status</Label>
                     <p className="mt-1">
                       {vercelConnection ? "Connected" : "Not Connected"}
                     </p>
@@ -539,6 +704,13 @@ export default function Settings() {
                       </div>
                     </>
                   )}
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Render Status</Label>
+                    <p className="mt-1">
+                      {renderConnection?.isValid ? "Connected" : renderConnection ? "Invalid" : "Not Connected"}
+                    </p>
+                  </div>
 
                   <div>
                     <Label className="text-xs text-muted-foreground">OAuth Start URL</Label>
@@ -760,7 +932,15 @@ export default function Settings() {
               <CardContent>
                 {releaseStatus.recentReleases && releaseStatus.recentReleases.length > 0 ? (
                   <div className="space-y-2">
-                    {releaseStatus.recentReleases.map((release) => (
+                    {releaseStatus.recentReleases.map((release: {
+                      _id: string;
+                      version: string;
+                      channel: string;
+                      status: string;
+                      detectedAt: number;
+                      notes?: string;
+                      deploymentId?: string;
+                    }) => (
                       <div
                         key={release._id}
                         className="flex items-center justify-between p-3 bg-slate-900 rounded-lg"
@@ -820,6 +1000,75 @@ export default function Settings() {
           </div>
         </div>
       )}
+
+      {/* Render Connect Dialog */}
+      <Dialog open={showRenderDialog} onOpenChange={setShowRenderDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Connect Render Account</DialogTitle>
+            <DialogDescription>
+              Enter your Render API key to connect your account. You can generate an API key from your Render Dashboard.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>How to get your Render API Key</AlertTitle>
+              <AlertDescription className="space-y-2 mt-2">
+                <ol className="list-decimal list-inside space-y-1 text-sm">
+                  <li>Go to <a href="https://dashboard.render.com/account/settings" target="_blank" rel="noopener noreferrer" className="underline">Render Dashboard → Account Settings</a></li>
+                  <li>Scroll down to "API Keys" section</li>
+                  <li>Click "Create API Key"</li>
+                  <li>Copy the key (starts with "rnd_")</li>
+                  <li>Paste it below</li>
+                </ol>
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-2">
+              <Label htmlFor="render-api-key">Render API Key</Label>
+              <Input
+                id="render-api-key"
+                type="password"
+                placeholder="rnd_xxxxxxxxxxxxxxxxxxxxxxxx"
+                value={renderApiKey}
+                onChange={(e) => setRenderApiKey(e.target.value)}
+                disabled={isConnectingRender}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your API key will be encrypted and stored securely
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRenderDialog(false);
+                setRenderApiKey("");
+              }}
+              disabled={isConnectingRender}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConnectRender}
+              disabled={isConnectingRender || !renderApiKey.trim()}
+            >
+              {isConnectingRender ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Connect"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

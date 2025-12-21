@@ -237,4 +237,16 @@ export default defineSchema({
     expiresAt: v.number(), // State expiration timestamp (TTL: 10 minutes)
     usedAt: v.optional(v.number()), // Timestamp when state was used (one-time use)
   }).index("by_state", ["state"]).index("by_expiresAt", ["expiresAt"]),
+
+  // Render-specific connection table (API Key based, not OAuth)
+  renderConnections: defineTable({
+    userId: v.id("users"), // User who owns this connection
+    apiKey: v.string(), // Encrypted Render API Key (format: rnd_xxxx)
+    accountName: v.optional(v.string()), // Render account name (from validation)
+    accountEmail: v.optional(v.string()), // Render account email (from validation)
+    isValid: v.boolean(), // Whether the API key is currently valid
+    lastValidatedAt: v.number(), // Last time API key was validated
+    createdAt: v.number(), // Connection creation timestamp
+    updatedAt: v.number(), // Last update timestamp
+  }).index("by_userId", ["userId"]),
 });
