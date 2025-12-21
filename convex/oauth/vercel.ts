@@ -3,16 +3,19 @@ import { internal } from "../_generated/api.js";
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- * PRODUCTION-GRADE VERCEL OAUTH 2.0 WITH CSRF PROTECTION
+ * VERCEL INTEGRATION OAUTH WITH PKCE AND CSRF PROTECTION
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  * 
  * Environment Variables Required:
- * - VERCEL_CLIENT_ID: OAuth application client ID
- * - VERCEL_CLIENT_SECRET: OAuth application client secret
+ * - VERCEL_CLIENT_ID: Integration client ID (oac_...)
+ * - VERCEL_CLIENT_SECRET: Integration client secret
  * - VERCEL_REDIRECT_URI: Exact callback URL (MUST be Convex HTTP domain)
  * 
  * Production Setup:
- * VERCEL_REDIRECT_URI=https://<deployment-name>.convex.site/auth/vercel/callback
+ * VERCEL_CLIENT_ID=oac_NQo26fpj2H7FSFDUmYC3Pkkm
+ * VERCEL_REDIRECT_URI=https://pleasant-donkey-394.convex.site/auth/vercel/callback
+ * 
+ * Integration Slug: autodeploy360
  * 
  * ⚠️ CRITICAL: The redirect URI MUST point to the Convex HTTP Action domain (.convex.site)
  * NOT the frontend app domain (.onhercules.app). The flow is:
@@ -114,19 +117,20 @@ export const startVercelOAuth = httpAction(async (ctx, request) => {
     // Generate code challenge from verifier
     const codeChallenge = await generateCodeChallenge(stateRecord.codeVerifier);
 
-    // Build authorization URL with PKCE
+    // Build Vercel Integration authorization URL with PKCE
+    // Integration slug: autodeploy360
     const params = new URLSearchParams({
       client_id: VERCEL_CLIENT_ID,
       redirect_uri: VERCEL_REDIRECT_URI,
-      response_type: "code",
       state,
       code_challenge: codeChallenge,
       code_challenge_method: "S256",
     });
 
-    const authUrl = `https://vercel.com/oauth/authorize?${params.toString()}`;
+    // Use integration installation URL (not OAuth authorize)
+    const authUrl = `https://vercel.com/integrations/autodeploy360/new?${params.toString()}`;
     
-    console.log("[OAuth Start] Redirecting to Vercel OAuth");
+    console.log("[OAuth Start] Redirecting to Vercel Integration");
     console.log("[OAuth Start] Redirect URI:", VERCEL_REDIRECT_URI);
 
     // Redirect browser to Vercel OAuth page

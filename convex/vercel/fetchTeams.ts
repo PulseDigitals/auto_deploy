@@ -85,25 +85,35 @@ export const getAvailableTeams = action({
       ];
     }
 
-    // WORKAROUND: Since Vercel's OIDC OAuth doesn't provide resource access,
-    // return a hardcoded list of teams that users can manually select from.
-    // The user's actual team memberships will need to be manually configured.
-    return [
-      {
-        id: "manual-entry",
-        slug: "isholla-gbadebio-s-projects",
-        name: "Isholla Gbadebio's projects",
-      },
-      {
-        id: "manual-entry-2",
-        slug: "auto-deploy",
-        name: "auto_Deploy",
-      },
-      {
-        id: "manual-entry-3",
-        slug: "pulsedigitals",
-        name: "PulseDigitals",
-      },
-    ];
+    try {
+      // Fetch teams from Vercel API
+      const teamsResponse = await fetch("https://api.vercel.com/v2/teams?limit=20", {
+        headers: {
+          Authorization: `Bearer ${connection.accessToken}`,
+        },
+      });
+
+      if (!teamsResponse.ok) {
+        const errorBody = await teamsResponse.text();
+        console.error("Failed to fetch Vercel teams:", {
+          status: teamsResponse.status,
+          statusText: teamsResponse.statusText,
+          body: errorBody,
+        });
+        return [];
+      }
+
+      const teamsData = await teamsResponse.json() as VercelTeamsResponse;
+      console.log(`[fetchTeams] Successfully fetched ${teamsData.teams.length} teams`);
+
+      return teamsData.teams.map((team) => ({
+        id: team.id,
+        slug: team.slug,
+        name: team.name,
+      }));
+    } catch (error) {
+      console.error("Error fetching Vercel teams:", error);
+      return [];
+    }
   },
 });
