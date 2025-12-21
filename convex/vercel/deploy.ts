@@ -30,7 +30,7 @@ export const triggerDeployment = internalAction({
 
     try {
       // Create a minimal static site deployment
-      // For static sites, we just need the HTML file
+      // We need a package.json to satisfy Vercel's build process
       const files = [
         {
           file: "index.html",
@@ -106,6 +106,22 @@ export const triggerDeployment = internalAction({
   </div>
 </body>
 </html>`).toString("base64"),
+        },
+        {
+          file: "package.json",
+          data: Buffer.from(JSON.stringify({
+            name: projectName,
+            version: "1.0.0",
+            scripts: {
+              build: "echo 'No build needed'",
+            },
+          }, null, 2)).toString("base64"),
+        },
+        {
+          file: "vercel.json",
+          data: Buffer.from(JSON.stringify({
+            buildCommand: "echo 'Static site - no build needed'",
+          }, null, 2)).toString("base64"),
         },
       ];
 
