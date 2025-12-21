@@ -107,7 +107,8 @@ export const triggerDeployment = internalAction({
       const files = [
         {
           file: "index.html",
-          data: Buffer.from(htmlContent).toString("base64"),
+          data: htmlContent,
+          encoding: "utf-8",
         },
       ];
 
