@@ -1,7 +1,8 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
+import DeploymentSuccessDialog from "@/components/DeploymentSuccessDialog.tsx";
 import { Rocket } from "lucide-react";
 
 type Deployment = {
@@ -19,6 +20,37 @@ type Deployment = {
 export default function Deployments() {
   const deployments = useQuery(api.deployments.listAllDeployments, {});
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
+  const [successDeployment, setSuccessDeployment] = useState<Deployment | null>(null);
+  const [shownSuccessDialogs, setShownSuccessDialogs] = useState<string[]>([]);
+  const prevDeploymentsRef = useRef<typeof deployments>(undefined);
+
+  // Detect newly successful deployments
+  useEffect(() => {
+    if (!deployments || !prevDeploymentsRef.current) {
+      prevDeploymentsRef.current = deployments;
+      return;
+    }
+
+    const prevDeployments = prevDeploymentsRef.current;
+    
+    // Find deployments that just became successful
+    deployments.forEach((deployment) => {
+      const prevDeployment = prevDeployments.find((d) => d._id === deployment._id);
+      
+      // Check if deployment just succeeded and hasn't been shown yet
+      if (
+        deployment.status === "success" &&
+        deployment.productionUrl &&
+        prevDeployment?.status !== "success" &&
+        !shownSuccessDialogs.includes(deployment._id)
+      ) {
+        setSuccessDeployment(deployment as Deployment);
+        setShownSuccessDialogs((prev) => [...prev, deployment._id]);
+      }
+    });
+
+    prevDeploymentsRef.current = deployments;
+  }, [deployments, shownSuccessDialogs]);
 
   return (
     <div>
@@ -98,6 +130,15 @@ export default function Deployments() {
         <DeploymentLogModal
           deployment={selectedDeployment}
           onClose={() => setSelectedDeployment(null)}
+        />
+      )}
+
+      {successDeployment && (
+        <DeploymentSuccessDialog
+          open={!!successDeployment}
+          onClose={() => setSuccessDeployment(null)}
+          productionUrl={successDeployment.productionUrl || ""}
+          projectName={successDeployment.provider}
         />
       )}
     </div>
