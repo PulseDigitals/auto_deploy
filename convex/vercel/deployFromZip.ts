@@ -44,25 +44,110 @@ export const deployFromZip = internalAction({
         message: `✓ Found ${zipEntries.length} files in ZIP`,
       });
 
+      // Detect root folder (if all files are in a single top-level directory)
+      let rootFolder = "";
+      const firstEntry = zipEntries.find(e => !e.isDirectory);
+      if (firstEntry) {
+        const parts = firstEntry.entryName.split("/");
+        if (parts.length > 1) {
+          // Check if all files share the same root
+          const potentialRoot = parts[0] + "/";
+          const allInRoot = zipEntries.every(e => 
+            e.isDirectory || e.entryName.startsWith(potentialRoot)
+          );
+          if (allInRoot) {
+            rootFolder = potentialRoot;
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId: args.deploymentId,
+              message: `✓ Detected root folder: ${rootFolder}`,
+            });
+          }
+        }
+      }
+
       // Convert files to Vercel format
       const files: Array<{ file: string; data: string; encoding: string }> = [];
       let totalSize = 0;
       
+      // Binary file extensions
+      const binaryExtensions = new Set([
+        '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp',
+        '.woff', '.woff2', '.ttf', '.eot', '.otf',
+        '.mp4', '.webm', '.ogg', '.mp3', '.wav',
+        '.zip', '.tar', '.gz', '.pdf',
+        '.exe', '.dll', '.so', '.dylib'
+      ]);
+      
+      // Folders/files to exclude
+      const excludePatterns = [
+        'node_modules/',
+        '.git/',
+        '.env',
+        '.DS_Store',
+        'dist/',
+        'build/',
+        '.next/',
+        'out/',
+        '.vercel/',
+      ];
+      
       for (const entry of zipEntries) {
         if (!entry.isDirectory) {
-          const content = entry.getData().toString("utf-8");
-          files.push({
-            file: entry.entryName,
-            data: content,
-            encoding: "utf-8",
-          });
-          totalSize += content.length;
+          // Strip root folder if detected
+          let filePath = entry.entryName;
+          if (rootFolder && filePath.startsWith(rootFolder)) {
+            filePath = filePath.substring(rootFolder.length);
+          }
+          
+          // Skip if path is empty after stripping
+          if (!filePath) continue;
+          
+          // Skip excluded paths
+          const shouldExclude = excludePatterns.some(pattern => 
+            filePath.startsWith(pattern) || filePath.includes('/' + pattern)
+          );
+          if (shouldExclude) continue;
+          
+          // Determine if file is binary
+          const ext = filePath.substring(filePath.lastIndexOf('.')).toLowerCase();
+          const isBinary = binaryExtensions.has(ext);
+          
+          if (isBinary) {
+            // Binary files: use base64 encoding
+            const data = entry.getData().toString("base64");
+            files.push({
+              file: filePath,
+              data: data,
+              encoding: "base64",
+            });
+            totalSize += data.length;
+          } else {
+            // Text files: use utf-8 encoding
+            const content = entry.getData().toString("utf-8");
+            files.push({
+              file: filePath,
+              data: content,
+              encoding: "utf-8",
+            });
+            totalSize += content.length;
+          }
         }
       }
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `✓ Extracted ${files.length} files (${(totalSize / 1024 / 1024).toFixed(2)} MB)`,
+      });
+
+      // Validate package.json exists
+      const hasPackageJson = files.some(f => f.file === "package.json");
+      if (!hasPackageJson) {
+        throw new Error("package.json not found in ZIP file. Make sure your project root contains a package.json file.");
+      }
+
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `✓ Validated project structure`,
       });
 
       await ctx.runMutation(internal.deployments.appendLog, {
