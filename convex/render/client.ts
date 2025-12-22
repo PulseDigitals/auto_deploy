@@ -211,6 +211,8 @@ export class RenderClient {
   async createService(input: CreateServiceInput): Promise<RenderService> {
     // Get owner ID first (required by Render API)
     const ownerId = await this.getOwnerId();
+    
+    console.log("[Render] Creating service with ownerId:", ownerId);
 
     // Build the service payload based on Render API spec
     const payload: Record<string, unknown> = {
@@ -239,6 +241,8 @@ export class RenderClient {
     if (input.envVars && input.envVars.length > 0) {
       payload.envVars = input.envVars;
     }
+    
+    console.log("[Render] Request payload:", JSON.stringify(payload, null, 2));
 
     return this.request<RenderService>("/services", {
       method: "POST",
