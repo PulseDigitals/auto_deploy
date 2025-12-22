@@ -195,14 +195,23 @@ export class RenderClient {
    * Get owner ID (required for creating services)
    */
   async getOwnerId(): Promise<string> {
-    const owners = await this.request<RenderOwner[]>("/owners");
-    
-    if (!owners || owners.length === 0) {
-      throw new Error("No owner found for this API key");
+    try {
+      const owners = await this.request<RenderOwner[]>("/owners");
+      
+      console.log("[Render] Owners response:", JSON.stringify(owners, null, 2));
+      
+      if (!owners || owners.length === 0) {
+        throw new Error("No owner found for this API key");
+      }
+      
+      // Return the first owner ID (usually the user's personal account)
+      const ownerId = owners[0].id;
+      console.log("[Render] Selected owner ID:", ownerId);
+      return ownerId;
+    } catch (error) {
+      console.error("[Render] Failed to get owner ID:", error);
+      throw error;
     }
-    
-    // Return the first owner ID (usually the user's personal account)
-    return owners[0].id;
   }
 
   /**
