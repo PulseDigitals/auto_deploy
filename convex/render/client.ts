@@ -255,14 +255,24 @@ export class RenderClient {
       payload.branch = input.branch || "main";
     }
     
-    // Add serviceDetails
-    payload.serviceDetails = {
-      env: input.runtime === "node" ? "node" : input.runtime === "docker" ? "docker" : "node",
+    // Build serviceDetails based on service type
+    const serviceDetails: Record<string, unknown> = {
       region: input.region || "oregon",
-      buildCommand: input.buildCommand || "",
-      startCommand: input.startCommand || "",
       autoDeploy: input.autoDeploy !== false ? "yes" : "no",
     };
+    
+    // Only add env for non-static_site services
+    if (input.type !== "static_site") {
+      serviceDetails.env = input.runtime === "node" ? "node" : input.runtime === "docker" ? "docker" : "node";
+      serviceDetails.startCommand = input.startCommand || "";
+    }
+    
+    // Add build command if provided
+    if (input.buildCommand) {
+      serviceDetails.buildCommand = input.buildCommand;
+    }
+    
+    payload.serviceDetails = serviceDetails;
 
     // Add environment variables if provided
     if (input.envVars && input.envVars.length > 0) {
