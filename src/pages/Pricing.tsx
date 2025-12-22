@@ -100,11 +100,16 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
+        <div className="mb-8 flex items-center justify-between">
           <Link to="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Link>
+          <img 
+            src="https://cdn.hercules.app/file_VyVWXRitxQHVzP57VWFwDRyQ" 
+            alt="1-Click auto Deploy" 
+            className="h-10 w-auto"
+          />
         </div>
         
         <div className="mb-12 text-center">

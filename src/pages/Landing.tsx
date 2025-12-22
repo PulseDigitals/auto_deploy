@@ -8,8 +8,33 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Header/Navbar */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="flex items-center justify-between">
+          <img 
+            src="https://cdn.hercules.app/file_VyVWXRitxQHVzP57VWFwDRyQ" 
+            alt="1-Click auto Deploy" 
+            className="h-12 w-auto"
+          />
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/pricing")}
+            >
+              Pricing
+            </Button>
+            <Button
+              onClick={() => navigate("/dashboard")}
+              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+            >
+              Get Started
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
-      <div className="container mx-auto px-6 py-20">
+      <div className="container mx-auto px-6 py-12">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <div className="text-left space-y-6">
