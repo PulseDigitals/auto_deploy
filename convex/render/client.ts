@@ -85,6 +85,14 @@ export interface RenderDeploy {
 }
 
 /**
+ * Account Owner Response (wrapped structure from API)
+ */
+export interface RenderOwnerWrapper {
+  cursor: string;
+  owner: RenderOwner;
+}
+
+/**
  * Account Owner Response
  */
 export interface RenderOwner {
@@ -155,19 +163,21 @@ export class RenderClient {
    */
   async validateApiKey(): Promise<{ valid: boolean; owner?: RenderOwner; error?: string }> {
     try {
-      const owners = await this.request<RenderOwner[]>("/owners");
+      const ownersResponse = await this.request<RenderOwnerWrapper[]>("/owners");
       
-      if (!owners || owners.length === 0) {
+      if (!ownersResponse || ownersResponse.length === 0) {
         return {
           valid: false,
           error: "No account found with this API key",
         };
       }
 
-      // Return the first owner (usually the user's personal account)
+      // Extract the owner from the wrapped response
+      const owner = ownersResponse[0].owner;
+      
       return {
         valid: true,
-        owner: owners[0],
+        owner,
       };
     } catch (error) {
       return {
@@ -196,17 +206,26 @@ export class RenderClient {
    */
   async getOwnerId(): Promise<string> {
     try {
-      const owners = await this.request<RenderOwner[]>("/owners");
+      const ownersResponse = await this.request<RenderOwnerWrapper[]>("/owners");
       
-      console.log("[Render] Owners response:", JSON.stringify(owners, null, 2));
+      console.log("[Render] Owners response:", JSON.stringify(ownersResponse, null, 2));
       
-      if (!owners || owners.length === 0) {
+      if (!ownersResponse || ownersResponse.length === 0) {
         throw new Error("No owner found for this API key");
       }
       
-      // Return the first owner ID (usually the user's personal account)
-      const ownerId = owners[0].id;
+      // Extract owner from the wrapped response structure
+      const owner = ownersResponse[0].owner;
+      
+      if (!owner || !owner.id) {
+        throw new Error("Owner object missing or invalid");
+      }
+      
+      const ownerId = owner.id;
       console.log("[Render] Selected owner ID:", ownerId);
+      console.log("[Render] Owner name:", owner.name);
+      console.log("[Render] Owner type:", owner.type);
+      
       return ownerId;
     } catch (error) {
       console.error("[Render] Failed to get owner ID:", error);
