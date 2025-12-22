@@ -27,7 +27,7 @@ export default function GettingStarted() {
       doc.setFontSize(24);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(79, 70, 229); // Indigo
-      doc.text("AI Deploy Agent", 105, yPos, { align: "center" });
+      doc.text("1-Click auto Deploy", 105, yPos, { align: "center" });
       yPos += 10;
 
       doc.setFontSize(16);
@@ -46,7 +46,7 @@ export default function GettingStarted() {
       doc.setFont("helvetica", "normal");
       
       const requirements = [
-        { icon: "✓", text: "AI Deploy Agent account (free signup)" },
+        { icon: "✓", text: "1-Click auto Deploy account (free signup)" },
         { icon: "✓", text: "Vercel account (free at vercel.com)" },
         { icon: "✓", text: "Your project code (ZIP file or GitHub repo)" },
         { icon: "✓", text: "package.json file in your project root" },
@@ -341,11 +341,11 @@ export default function GettingStarted() {
       doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(150, 150, 150);
-      doc.text("AI Deploy Agent - Deploy with Confidence", 105, yPos, { align: "center" });
+      doc.text("1-Click auto Deploy - Deploy with Confidence", 105, yPos, { align: "center" });
       doc.text("Generated on " + new Date().toLocaleDateString(), 105, yPos + 5, { align: "center" });
 
       // Save
-      doc.save("ai-deploy-agent-getting-started.pdf");
+      doc.save("1-click-auto-deploy-getting-started.pdf");
     } finally {
       setIsGenerating(false);
     }
@@ -406,7 +406,7 @@ export default function GettingStarted() {
           <div className="flex items-start gap-3">
             <CheckCircle className="mt-0.5 h-5 w-5 text-green-500" />
             <div>
-              <p className="font-medium">AI Deploy Agent Account</p>
+              <p className="font-medium">1-Click auto Deploy Account</p>
               <p className="text-sm text-slate-400">Free signup - you're already logged in!</p>
             </div>
           </div>

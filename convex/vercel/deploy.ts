@@ -36,7 +36,7 @@ export const triggerDeployment = internalAction({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Deploy Agent</title>
+  <title>1-Click auto Deploy</title>
   <style>
     * {
       margin: 0;
@@ -93,11 +93,11 @@ export const triggerDeployment = internalAction({
 </head>
 <body>
   <div class="container">
-    <h1>🚀 AI Deploy Agent</h1>
+    <h1>🚀 1-Click auto Deploy</h1>
     <p>Your deployment was successful!</p>
     <div class="badge">✓ Live on Vercel</div>
     <div class="details">
-      <div class="detail-item">Powered by AI Deploy Agent</div>
+      <div class="detail-item">Powered by 1-Click auto Deploy</div>
       <div class="detail-item">Deployed with ❤️ to Vercel</div>
     </div>
   </div>

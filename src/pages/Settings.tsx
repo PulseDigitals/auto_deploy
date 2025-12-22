@@ -351,7 +351,7 @@ export default function Settings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Manage API keys for programmatic access to AI Deploy Agent
+              Manage API keys for programmatic access to 1-Click auto Deploy
             </p>
             <Button variant="outline" disabled>
               Generate API Key

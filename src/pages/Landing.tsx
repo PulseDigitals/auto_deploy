@@ -95,7 +95,7 @@ export default function Landing() {
       {/* Features Section */}
       <div className="container mx-auto px-6 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">
-          Why Choose AI Deploy Agent
+          Why Choose 1-Click auto Deploy
         </h2>
         
         <div className="grid md:grid-cols-3 gap-8">
