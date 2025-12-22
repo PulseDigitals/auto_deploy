@@ -213,7 +213,18 @@ export class RenderClient {
    * List all services for the account
    */
   async listServices(): Promise<RenderService[]> {
-    return this.request<RenderService[]>("/services");
+    const response = await this.request<RenderService[] | { service: RenderService }[]>("/services");
+    
+    // Handle both array response formats
+    if (Array.isArray(response) && response.length > 0) {
+      // Check if it's wrapped like owners endpoint
+      if ('service' in response[0]) {
+        console.log("[Render] Services are wrapped, extracting...");
+        return (response as { service: RenderService }[]).map(item => item.service);
+      }
+    }
+    
+    return response as RenderService[];
   }
 
   /**

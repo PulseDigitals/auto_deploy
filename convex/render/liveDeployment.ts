@@ -11,7 +11,7 @@
 import { internalAction } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
 import { v } from "convex/values";
-import { RenderClient, type CreateServiceInput, type RenderEnvVar } from "./client.js";
+import { RenderClient, type CreateServiceInput, type RenderEnvVar, type RenderService } from "./client.js";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
@@ -169,15 +169,44 @@ export const executeLiveDeployment = internalAction({
         message: `⚙️ Configuring service: ${serviceName}`,
       });
 
-      const service = await client.createService(serviceInput);
+      // Check if service already exists
+      let service: RenderService | undefined;
       
-      console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
-      console.log("[Render] Service ID:", service.id);
+      try {
+        const existingServices = await client.listServices();
+        console.log(`[Render] Found ${existingServices.length} existing services`);
+        
+        service = existingServices.find(s => s.name === serviceName);
+        
+        if (service) {
+          console.log("[Render] Reusing existing service:", JSON.stringify(service, null, 2));
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `♻️ Found existing service: ${service.id}`,
+          });
+        }
+      } catch (error) {
+        console.log("[Render] Could not list services:", error);
+      }
+      
+      // Create new service only if it doesn't exist
+      if (!service) {
+        service = await client.createService(serviceInput);
+        
+        console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
+        console.log("[Render] Service ID:", service.id);
 
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `✅ Service created with ID: ${service.id}`,
-      });
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `✅ Service created with ID: ${service.id}`,
+        });
+      }
+      
+      // Validate service ID
+      if (!service || !service.id) {
+        throw new Error("Failed to get valid service ID from Render");
+      }
 
       // Trigger initial deploy
       await ctx.runMutation(internal.deployments.appendLog, {
