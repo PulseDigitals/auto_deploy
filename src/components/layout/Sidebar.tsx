@@ -19,11 +19,11 @@ export default function Sidebar() {
   return (
     <div className="w-64 bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col">
       <div className="space-y-6 flex-1">
-        <Link to="/dashboard" className="block mb-4 bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
+        <Link to="/dashboard" className="block mb-4 bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors">
           <img 
             src="https://cdn.hercules.app/file_VyVWXRitxQHVzP57VWFwDRyQ" 
             alt="1-Click auto Deploy" 
-            className="w-full h-auto"
+            className="w-full h-auto scale-110"
           />
         </Link>
 

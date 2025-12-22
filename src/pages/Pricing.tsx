@@ -108,7 +108,7 @@ export default function Pricing() {
           <img 
             src="https://cdn.hercules.app/file_VyVWXRitxQHVzP57VWFwDRyQ" 
             alt="1-Click auto Deploy" 
-            className="h-10 w-auto"
+            className="h-16 w-auto"
           />
         </div>
         

@@ -14,7 +14,7 @@ export default function Landing() {
           <img 
             src="https://cdn.hercules.app/file_VyVWXRitxQHVzP57VWFwDRyQ" 
             alt="1-Click auto Deploy" 
-            className="h-12 w-auto"
+            className="h-20 w-auto"
           />
           <div className="flex gap-3">
             <Button
@@ -93,13 +93,13 @@ export default function Landing() {
           <div className="relative space-y-6">
             {/* Text Above Image */}
             <div className="text-center">
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight">
+              <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white tracking-wide leading-tight">
                 FROM BUILD TO LIVE
               </h2>
-              <p className="text-base md:text-lg lg:text-2xl font-bold text-green-400 tracking-wide mt-2">
+              <p className="text-sm md:text-base lg:text-lg font-bold text-green-400 tracking-wide mt-1">
                 AUTO DEPLOY
               </p>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight mt-2">
+              <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white tracking-wide leading-tight mt-1">
                 IN ONE CLICK
               </h2>
             </div>

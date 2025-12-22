@@ -276,13 +276,13 @@ function ProjectsContent() {
         <div className="hidden lg:block sticky top-6 space-y-4">
           {/* Text Above Image */}
           <div className="text-center">
-            <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight">
+            <h2 className="text-base md:text-lg font-bold text-white tracking-wide leading-tight">
               FROM BUILD TO LIVE
             </h2>
-            <p className="text-sm md:text-base font-bold text-green-400 tracking-wide mt-1">
+            <p className="text-xs md:text-sm font-bold text-green-400 tracking-wide mt-1">
               AUTO DEPLOY
             </p>
-            <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight mt-1">
+            <h2 className="text-base md:text-lg font-bold text-white tracking-wide leading-tight mt-1">
               IN ONE CLICK
             </h2>
           </div>
