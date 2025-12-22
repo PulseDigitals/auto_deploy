@@ -171,6 +171,12 @@ export class RenderClient {
 
     const result = await response.json() as Promise<T>;
     console.log(`[Render API Success] ${method} ${endpoint} completed successfully`);
+    
+    // Log the response for debugging (especially for service creation)
+    if (endpoint === "/services" && method === "POST") {
+      console.log("[Render API Response]", JSON.stringify(result, null, 2));
+    }
+    
     return result;
   }
 

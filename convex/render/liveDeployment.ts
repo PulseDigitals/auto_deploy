@@ -170,6 +170,9 @@ export const executeLiveDeployment = internalAction({
       });
 
       const service = await client.createService(serviceInput);
+      
+      console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
+      console.log("[Render] Service ID:", service.id);
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
