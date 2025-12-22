@@ -273,28 +273,28 @@ function ProjectsContent() {
         </div>
 
         {/* Right Column - Hero Image */}
-        <div className="hidden lg:block sticky top-6">
+        <div className="hidden lg:block sticky top-6 space-y-4">
+          {/* Text Above Image */}
+          <div className="text-center">
+            <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight">
+              FROM BUILD TO LIVE
+            </h2>
+            <p className="text-sm md:text-base font-bold text-green-400 tracking-wide mt-1">
+              AUTO DEPLOY
+            </p>
+            <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight mt-1">
+              IN ONE CLICK
+            </h2>
+          </div>
+          
+          {/* Image Card */}
           <Card className="border-green-500/20 bg-gradient-to-br from-slate-900 to-slate-950 overflow-hidden">
-            <CardContent className="p-0 relative">
+            <CardContent className="p-0">
               <img 
                 src="https://cdn.hercules.app/file_IGFksD2ZqPMtAl0ttUDaSZ4O" 
                 alt="From Build to Live - Auto Deploy in One Click"
                 className="w-full h-auto"
               />
-              {/* Text Overlay */}
-              <div className="absolute top-0 left-0 right-0 pt-6 flex justify-center">
-                <div className="text-center px-4">
-                  <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight">
-                    FROM BUILD TO LIVE
-                  </h2>
-                  <p className="text-sm md:text-base font-bold text-green-400 tracking-wide mt-1">
-                    AUTO DEPLOY
-                  </p>
-                  <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight mt-1">
-                    IN ONE CLICK
-                  </h2>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>

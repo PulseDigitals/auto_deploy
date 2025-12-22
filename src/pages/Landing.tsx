@@ -65,27 +65,29 @@ export default function Landing() {
           </div>
 
           {/* Right - Hero Image */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-3xl"></div>
-            <div className="relative rounded-2xl shadow-2xl border border-green-500/20 overflow-hidden">
-              <img
-                src="https://cdn.hercules.app/file_IGFksD2ZqPMtAl0ttUDaSZ4O"
-                alt="From Build to Live - Auto Deploy in One Click"
-                className="w-full h-auto"
-              />
-              {/* Text Overlay */}
-              <div className="absolute top-0 left-0 right-0 pt-8 flex justify-center">
-                <div className="text-center px-6">
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight">
-                    FROM BUILD TO LIVE
-                  </h2>
-                  <p className="text-base md:text-lg lg:text-2xl font-bold text-green-400 tracking-wide mt-2">
-                    AUTO DEPLOY
-                  </p>
-                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight mt-2">
-                    IN ONE CLICK
-                  </h2>
-                </div>
+          <div className="relative space-y-6">
+            {/* Text Above Image */}
+            <div className="text-center">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight">
+                FROM BUILD TO LIVE
+              </h2>
+              <p className="text-base md:text-lg lg:text-2xl font-bold text-green-400 tracking-wide mt-2">
+                AUTO DEPLOY
+              </p>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight mt-2">
+                IN ONE CLICK
+              </h2>
+            </div>
+            
+            {/* Image */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-3xl"></div>
+              <div className="relative rounded-2xl shadow-2xl border border-green-500/20 overflow-hidden">
+                <img
+                  src="https://cdn.hercules.app/file_IGFksD2ZqPMtAl0ttUDaSZ4O"
+                  alt="From Build to Live - Auto Deploy in One Click"
+                  className="w-full h-auto"
+                />
               </div>
             </div>
           </div>
