@@ -164,7 +164,15 @@ export const executeLiveDeployment = internalAction({
       }
 
     } catch (error) {
+      console.error("[Render Deployment Error]", error);
+      
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      
+      console.error("[Render Deployment Error] Message:", errorMessage);
+      if (errorStack) {
+        console.error("[Render Deployment Error] Stack:", errorStack);
+      }
       
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId: args.deploymentId,
@@ -174,8 +182,15 @@ export const executeLiveDeployment = internalAction({
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `Error details: ${errorMessage}`,
+        message: `🔍 Error details: ${errorMessage}`,
       });
+      
+      if (errorStack && errorStack.length < 500) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 Stack trace: ${errorStack.substring(0, 500)}`,
+        });
+      }
     }
   },
 });

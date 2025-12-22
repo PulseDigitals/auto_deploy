@@ -135,6 +135,11 @@ export class RenderClient {
       headers["Content-Type"] = "application/json";
     }
 
+    console.log(`[Render API Request] ${method} ${url}`);
+    if (body) {
+      console.log(`[Render API Request Body]:`, JSON.stringify(body, null, 2));
+    }
+
     const response = await fetch(url, {
       method,
       headers,
@@ -143,19 +148,30 @@ export class RenderClient {
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`[Render API Error] Status: ${response.status} ${response.statusText}`);
+      console.error(`[Render API Error] URL: ${url}`);
+      console.error(`[Render API Error] Method: ${method}`);
+      console.error(`[Render API Error] Response Body:`, errorText);
+      
       let errorMessage: string;
+      let fullErrorDetails: string;
       
       try {
         const errorJson = JSON.parse(errorText);
+        console.error(`[Render API Error] Parsed JSON:`, JSON.stringify(errorJson, null, 2));
         errorMessage = errorJson.message || errorJson.error || errorText;
+        fullErrorDetails = JSON.stringify(errorJson, null, 2);
       } catch {
         errorMessage = errorText || `HTTP ${response.status}: ${response.statusText}`;
+        fullErrorDetails = errorText;
       }
 
-      throw new Error(`Render API error: ${errorMessage}`);
+      throw new Error(`Render API error (${response.status}): ${errorMessage}\n\nFull details: ${fullErrorDetails}`);
     }
 
-    return response.json() as Promise<T>;
+    const result = await response.json() as Promise<T>;
+    console.log(`[Render API Success] ${method} ${endpoint} completed successfully`);
+    return result;
   }
 
   /**
