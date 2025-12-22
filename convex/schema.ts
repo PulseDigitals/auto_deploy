@@ -8,6 +8,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     isPowerUser: v.optional(v.boolean()), // Power users can access advanced features
     isAdmin: v.optional(v.boolean()), // Admin users can access system projects
+    isTestUser: v.optional(v.boolean()), // Test users get unlimited deployments, bypass cost limits, and free access to all features
     adminBootstrapped: v.optional(v.boolean()), // Tracks if this user bootstrapped as first admin
     subscription: v.optional(
       v.object({

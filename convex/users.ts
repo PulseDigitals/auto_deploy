@@ -267,3 +267,105 @@ export const toggleAdminStatus = mutation({
     return { success: true, isAdmin: newAdminStatus };
   },
 });
+
+// Query to list all users (admin-only)
+export const listAllUsers = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHENTICATED",
+        message: "User not logged in",
+      });
+    }
+
+    // Verify caller is an admin
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!caller?.isAdmin) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Only admins can list all users",
+      });
+    }
+
+    // Get all users
+    const users = await ctx.db.query("users").collect();
+    
+    return users.map(user => ({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      isAdmin: user.isAdmin ?? false,
+      isTestUser: user.isTestUser ?? false,
+      subscription: user.subscription,
+      _creationTime: user._creationTime,
+    }));
+  },
+});
+
+// Mutation to toggle test user status (admin-only)
+export const toggleTestUserStatus = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, { userId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHENTICATED",
+        message: "User not logged in",
+      });
+    }
+
+    // Verify caller is an admin
+    const caller = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    if (!caller?.isAdmin) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "Only admins can manage test users",
+      });
+    }
+
+    // Get target user
+    const targetUser = await ctx.db.get(userId);
+    if (!targetUser) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "User not found",
+      });
+    }
+
+    // Toggle test user status
+    const newTestUserStatus = !targetUser.isTestUser;
+    await ctx.db.patch(targetUser._id, {
+      isTestUser: newTestUserStatus,
+    });
+
+    return { success: true, isTestUser: newTestUserStatus };
+  },
+});
+
+// Query to check if current user is a test user
+export const isCurrentUserTestUser = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_token", (q) => q.eq("tokenIdentifier", identity.tokenIdentifier))
+      .unique();
+
+    return Boolean(user?.isTestUser);
+  },
+});

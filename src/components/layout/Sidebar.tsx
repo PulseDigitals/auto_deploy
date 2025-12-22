@@ -9,12 +9,14 @@ const navItems = [
   { label: "Projects", to: "/dashboard/projects" },
   { label: "Deployments", to: "/dashboard/deployments" },
   { label: "Auto-Deploy", to: "/dashboard/auto-deploy" },
+  { label: "Test Users", to: "/dashboard/test-users", adminOnly: true },
   { label: "Settings", to: "/dashboard/settings" },
 ];
 
 export default function Sidebar() {
   const currentUser = useQuery(api.users.getCurrentUser);
   const currentPlan = currentUser?.subscription?.plan || "free";
+  const isAdmin = currentUser?.isAdmin ?? false;
 
   return (
     <div className="w-64 bg-slate-900 text-slate-100 min-h-screen p-4 flex flex-col">
@@ -28,19 +30,26 @@ export default function Sidebar() {
         </Link>
 
         <nav className="flex flex-col gap-3">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `px-4 py-2 rounded-md ${
-                  isActive ? "bg-indigo-600" : "hover:bg-slate-700"
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            // Hide admin-only items for non-admins
+            if (item.adminOnly && !isAdmin) {
+              return null;
+            }
+            
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `px-4 py-2 rounded-md ${
+                    isActive ? "bg-indigo-600" : "hover:bg-slate-700"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
 

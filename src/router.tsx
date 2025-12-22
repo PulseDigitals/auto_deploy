@@ -9,6 +9,7 @@ import Settings from "./pages/Settings.tsx";
 import Pricing from "./pages/Pricing.tsx";
 import AutoDeploy from "./pages/AutoDeploy.tsx";
 import GettingStarted from "./pages/GettingStarted.tsx";
+import TestUsers from "./pages/TestUsers.tsx";
 
 export function AppRouter() {
   return (
@@ -24,6 +25,7 @@ export function AppRouter() {
           <Route path="deployments" element={<Deployments />} />
           <Route path="auto-deploy" element={<AutoDeploy />} />
           <Route path="getting-started" element={<GettingStarted />} />
+          <Route path="test-users" element={<TestUsers />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

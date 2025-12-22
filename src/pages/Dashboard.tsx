@@ -3,13 +3,16 @@ import { api } from "@/convex/_generated/api.js";
 import { useAuth } from "@/hooks/use-auth.ts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { FolderGit2, Rocket, DollarSign, TrendingUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge.tsx";
+import { FolderGit2, Rocket, DollarSign, TrendingUp, FlaskConical } from "lucide-react";
 
 export default function Dashboard() {
   const projects = useQuery(api.projects.listProjectsByUser, {});
   const deployments = useQuery(api.deployments.listAllDeployments, {});
+  const currentUser = useQuery(api.users.getCurrentUser, {});
 
   const isLoading = projects === undefined || deployments === undefined;
+  const isTestUser = currentUser?.isTestUser ?? false;
 
   const stats = [
     {
@@ -42,10 +45,25 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Welcome to 1-Click auto Deploy</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-bold">Welcome to 1-Click auto Deploy</h1>
+          {isTestUser && (
+            <Badge variant="outline" className="border-purple-500 text-purple-500">
+              <FlaskConical className="h-3 w-3 mr-1" />
+              Test User
+            </Badge>
+          )}
+        </div>
         <p className="text-muted-foreground mt-2">
           Monitor your deployments and manage your projects from one place.
         </p>
+        {isTestUser && (
+          <div className="mt-3 p-3 rounded-lg bg-purple-500/10 border border-purple-500/30">
+            <p className="text-sm text-purple-300">
+              🎉 You have test user privileges: Unlimited deployments, beta features, and no cost limits!
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
