@@ -74,11 +74,15 @@ export default function Landing() {
                 className="w-full h-auto"
               />
               {/* Text Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute top-0 left-0 right-0 pt-8 flex justify-center">
                 <div className="text-center px-6">
                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight">
-                    FROM BUILD TO LIVE<br />
-                    <span className="text-green-400">AUTO DEPLOY</span><br />
+                    FROM BUILD TO LIVE
+                  </h2>
+                  <p className="text-base md:text-lg lg:text-2xl font-bold text-green-400 tracking-wide mt-2">
+                    AUTO DEPLOY
+                  </p>
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight mt-2">
                     IN ONE CLICK
                   </h2>
                 </div>

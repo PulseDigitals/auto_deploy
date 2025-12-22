@@ -282,11 +282,15 @@ function ProjectsContent() {
                 className="w-full h-auto"
               />
               {/* Text Overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute top-0 left-0 right-0 pt-6 flex justify-center">
                 <div className="text-center px-4">
                   <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight">
-                    FROM BUILD TO LIVE<br />
-                    <span className="text-green-400">AUTO DEPLOY</span><br />
+                    FROM BUILD TO LIVE
+                  </h2>
+                  <p className="text-sm md:text-base font-bold text-green-400 tracking-wide mt-1">
+                    AUTO DEPLOY
+                  </p>
+                  <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight mt-1">
                     IN ONE CLICK
                   </h2>
                 </div>
