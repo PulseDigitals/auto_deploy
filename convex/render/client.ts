@@ -247,23 +247,22 @@ export class RenderClient {
       ownerId, // REQUIRED: Owner ID for the service
       name: input.name,
       type: input.type,
-      serviceDetails: {
-        env: input.runtime === "node" ? "node" : input.runtime === "docker" ? "docker" : "node",
-        region: input.region || "oregon",
-        buildCommand: input.buildCommand || "",
-        startCommand: input.startCommand || "",
-        autoDeploy: input.autoDeploy !== false ? "yes" : "no",
-      },
     };
-
-    // Add repo if provided
+    
+    // Add repo and branch at the top level (required for static_site)
     if (input.repo) {
-      payload.serviceDetails = {
-        ...payload.serviceDetails as Record<string, unknown>,
-        repo: input.repo,
-        branch: input.branch || "main",
-      };
+      payload.repo = input.repo;
+      payload.branch = input.branch || "main";
     }
+    
+    // Add serviceDetails
+    payload.serviceDetails = {
+      env: input.runtime === "node" ? "node" : input.runtime === "docker" ? "docker" : "node",
+      region: input.region || "oregon",
+      buildCommand: input.buildCommand || "",
+      startCommand: input.startCommand || "",
+      autoDeploy: input.autoDeploy !== false ? "yes" : "no",
+    };
 
     // Add environment variables if provided
     if (input.envVars && input.envVars.length > 0) {
