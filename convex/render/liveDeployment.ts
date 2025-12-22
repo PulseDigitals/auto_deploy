@@ -16,6 +16,51 @@ import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
 /**
+ * Detect the default branch of a GitHub repository
+ * Tries to fetch from GitHub API, falls back to common branch names
+ */
+async function detectDefaultBranch(repoUrl: string): Promise<string> {
+  try {
+    // Extract owner/repo from GitHub URL
+    // e.g. https://github.com/PulseDigitals/estate-management-system
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!match) {
+      console.log("[Branch Detection] Not a GitHub URL, defaulting to main");
+      return "main";
+    }
+    
+    const [, owner, repo] = match;
+    const cleanRepo = repo.replace(/\.git$/, "");
+    
+    console.log(`[Branch Detection] Fetching default branch for ${owner}/${cleanRepo}`);
+    
+    // Call GitHub API to get repository info
+    const response = await fetch(`https://api.github.com/repos/${owner}/${cleanRepo}`, {
+      headers: {
+        "Accept": "application/vnd.github.v3+json",
+        "User-Agent": "1-Click-Deploy",
+      },
+    });
+    
+    if (response.ok) {
+      const data = await response.json() as { default_branch?: string };
+      if (data.default_branch) {
+        console.log(`[Branch Detection] Found default branch: ${data.default_branch}`);
+        return data.default_branch;
+      }
+    } else {
+      console.log(`[Branch Detection] GitHub API failed with status ${response.status}`);
+    }
+  } catch (error) {
+    console.error("[Branch Detection] Error fetching from GitHub:", error);
+  }
+  
+  // Fallback to common branch names
+  console.log("[Branch Detection] Falling back to 'main'");
+  return "main";
+}
+
+/**
  * Execute live deployment to Render
  * Entry point from deployment pipeline
  */
@@ -107,7 +152,15 @@ export const executeLiveDeployment = internalAction({
       // If project has a git repo, use it
       if (project.gitRepoUrl) {
         serviceInput.repo = project.gitRepoUrl;
-        serviceInput.branch = "main"; // Default branch
+        
+        // Detect default branch from GitHub
+        const defaultBranch = await detectDefaultBranch(project.gitRepoUrl);
+        serviceInput.branch = defaultBranch;
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🌿 Detected branch: ${defaultBranch}`,
+        });
       }
 
       // Create service on Render
