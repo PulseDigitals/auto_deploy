@@ -10,6 +10,22 @@ export default defineSchema({
     isAdmin: v.optional(v.boolean()), // Admin users can access system projects
     isTestUser: v.optional(v.boolean()), // Test users get unlimited deployments, bypass cost limits, and free access to all features
     adminBootstrapped: v.optional(v.boolean()), // Tracks if this user bootstrapped as first admin
+    // Activity tracking
+    lastActiveAt: v.optional(v.number()), // Last time user was active
+    isActive: v.optional(v.boolean()), // Whether user is currently active (last 7 days)
+    // Location & metadata
+    location: v.optional(v.object({
+      country: v.optional(v.string()),
+      city: v.optional(v.string()),
+      timezone: v.optional(v.string()),
+    })),
+    // Billing
+    billingInfo: v.optional(v.object({
+      totalSpent: v.number(), // Total amount spent (USD)
+      lastPaymentAt: v.optional(v.number()), // Last payment timestamp
+      lastPaymentAmount: v.optional(v.number()), // Last payment amount
+      paymentMethod: v.optional(v.string()), // "card" | "paypal" | etc
+    })),
     subscription: v.optional(
       v.object({
         plan: v.string(), // "free" | "pro" | "team" | "enterprise"

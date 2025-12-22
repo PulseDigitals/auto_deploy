@@ -9,6 +9,7 @@ const navItems = [
   { label: "Projects", to: "/dashboard/projects" },
   { label: "Deployments", to: "/dashboard/deployments" },
   { label: "Auto-Deploy", to: "/dashboard/auto-deploy" },
+  { label: "User Management", to: "/dashboard/user-management", adminOnly: true },
   { label: "Test Users", to: "/dashboard/test-users", adminOnly: true },
   { label: "Settings", to: "/dashboard/settings" },
 ];
