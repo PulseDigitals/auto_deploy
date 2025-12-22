@@ -192,11 +192,29 @@ export class RenderClient {
   }
 
   /**
+   * Get owner ID (required for creating services)
+   */
+  async getOwnerId(): Promise<string> {
+    const owners = await this.request<RenderOwner[]>("/owners");
+    
+    if (!owners || owners.length === 0) {
+      throw new Error("No owner found for this API key");
+    }
+    
+    // Return the first owner ID (usually the user's personal account)
+    return owners[0].id;
+  }
+
+  /**
    * Create a new service
    */
   async createService(input: CreateServiceInput): Promise<RenderService> {
+    // Get owner ID first (required by Render API)
+    const ownerId = await this.getOwnerId();
+
     // Build the service payload based on Render API spec
     const payload: Record<string, unknown> = {
+      ownerId, // REQUIRED: Owner ID for the service
       name: input.name,
       type: input.type,
       serviceDetails: {
