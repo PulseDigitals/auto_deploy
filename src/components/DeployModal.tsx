@@ -26,6 +26,7 @@ interface DeployModalProps {
   isDeploying: boolean;
   userPlan: SubscriptionPlan;
   isPowerUser?: boolean;
+  isTestUser?: boolean;
   isSystemProject?: boolean;
   isAdmin?: boolean;
 }
@@ -37,6 +38,7 @@ export default function DeployModal({
   isDeploying,
   userPlan,
   isPowerUser = false,
+  isTestUser = false,
   isSystemProject = false,
   isAdmin = false,
 }: DeployModalProps) {
@@ -46,9 +48,11 @@ export default function DeployModal({
 
   // Check if user has access to live deployment
   // ADMIN OVERRIDE: Allow live deployment for system projects
+  // TEST USER OVERRIDE: Allow live deployment for test users (unlimited access)
   const canUseLiveDeployment = 
     hasAccess(userPlan, "live_deployment") || 
     isPowerUser || 
+    isTestUser ||
     (isSystemProject && isAdmin);
   const requiredPlan = getRequiredPlan("live_deployment");
   

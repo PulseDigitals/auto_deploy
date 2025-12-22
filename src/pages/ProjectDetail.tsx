@@ -1516,6 +1516,7 @@ export default function ProjectDetail() {
         isDeploying={isDeploying}
         userPlan={userPlan}
         isPowerUser={currentUser?.isPowerUser || false}
+        isTestUser={currentUser?.isTestUser || false}
         isSystemProject={project?.isSystemProject || false}
         isAdmin={isAdmin || false}
       />
