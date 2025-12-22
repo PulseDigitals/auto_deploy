@@ -72,8 +72,11 @@ export const createDeployment = mutation({
         throw new Error("FORBIDDEN: Only admins can deploy system projects");
       }
       
-      // For non-system projects, validate subscription plan
-      if (!isSystemProject) {
+      // TEST USER OVERRIDE: Test users have unlimited access
+      const isTestUser = user?.isTestUser ?? false;
+      
+      // For non-system projects, validate subscription plan (unless test user)
+      if (!isSystemProject && !isTestUser) {
         if (!user?.subscription) {
           throw new Error("FORBIDDEN: Live deployment requires a subscription");
         }
