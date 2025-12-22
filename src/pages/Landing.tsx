@@ -67,11 +67,23 @@ export default function Landing() {
           {/* Right - Hero Image */}
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-3xl blur-3xl"></div>
-            <img
-              src="https://cdn.hercules.app/file_zaOoH9OMJ9bt7J8rlG554M48"
-              alt="From Build to Live - Auto Deploy in One Click"
-              className="relative rounded-2xl shadow-2xl border border-green-500/20"
-            />
+            <div className="relative rounded-2xl shadow-2xl border border-green-500/20 overflow-hidden">
+              <img
+                src="https://cdn.hercules.app/file_IGFksD2ZqPMtAl0ttUDaSZ4O"
+                alt="From Build to Live - Auto Deploy in One Click"
+                className="w-full h-auto"
+              />
+              {/* Text Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center px-6">
+                  <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-wide leading-tight">
+                    FROM BUILD TO LIVE<br />
+                    <span className="text-green-400">AUTO DEPLOY</span><br />
+                    IN ONE CLICK
+                  </h2>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

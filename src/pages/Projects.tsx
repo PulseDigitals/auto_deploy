@@ -275,12 +275,22 @@ function ProjectsContent() {
         {/* Right Column - Hero Image */}
         <div className="hidden lg:block sticky top-6">
           <Card className="border-green-500/20 bg-gradient-to-br from-slate-900 to-slate-950 overflow-hidden">
-            <CardContent className="p-0">
+            <CardContent className="p-0 relative">
               <img 
-                src="https://cdn.hercules.app/file_O33X4OnMSMU8dN8dTEz6ez24" 
+                src="https://cdn.hercules.app/file_IGFksD2ZqPMtAl0ttUDaSZ4O" 
                 alt="From Build to Live - Auto Deploy in One Click"
                 className="w-full h-auto"
               />
+              {/* Text Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center px-4">
+                  <h2 className="text-xl md:text-2xl font-bold text-white tracking-wide leading-tight">
+                    FROM BUILD TO LIVE<br />
+                    <span className="text-green-400">AUTO DEPLOY</span><br />
+                    IN ONE CLICK
+                  </h2>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
