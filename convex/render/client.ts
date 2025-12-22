@@ -273,9 +273,14 @@ export class RenderClient {
     
     // Build serviceDetails based on service type
     const serviceDetails: Record<string, unknown> = {
-      region: input.region || "oregon",
       autoDeploy: input.autoDeploy !== false ? "yes" : "no",
     };
+    
+    // For static_site: region is NOT a valid parameter (Render API restriction)
+    // For other service types: region IS valid
+    if (input.type !== "static_site" && input.region) {
+      serviceDetails.region = input.region;
+    }
     
     // Only add env for non-static_site services
     if (input.type !== "static_site") {
