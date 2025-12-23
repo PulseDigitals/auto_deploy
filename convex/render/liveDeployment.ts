@@ -264,17 +264,42 @@ export const executeLiveDeployment = internalAction({
         });
       }
       
+      const publishPath = monorepoConfig.publishPath || "dist";
+      const buildCommand = monorepoConfig.buildCommand || "npm install && npm run build";
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `⚙️ Configuration:`,
+      });
+      
+      if (monorepoConfig.rootDirectory) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   Root: ${monorepoConfig.rootDirectory}`,
+        });
+      }
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `   Build: ${buildCommand}`,
+      });
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `   Publish: ${publishPath}`,
+      });
+      
       const serviceInput: CreateServiceInput = {
         name: serviceName,
         type: "static_site",
         runtime: "node",
-        buildCommand: monorepoConfig.buildCommand || "npm run build",
+        buildCommand,
         region: "oregon",
         autoDeploy: true,
         repo: project.gitRepoUrl,
         branch: defaultBranch,
         rootDirectory: monorepoConfig.rootDirectory,
-        publishPath: monorepoConfig.publishPath,
+        publishPath,
       };
 
       // Create service on Render
