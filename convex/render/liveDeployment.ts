@@ -450,6 +450,22 @@ export const executeLiveDeployment = internalAction({
           deploymentId: args.deploymentId,
           message: `🔨 Deployment automatically initiated by Render (ID: ${deployId})`,
         });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `⏳ Starting real-time build monitoring...`,
+        });
+        
+        // Start polling for deployment status
+        await ctx.scheduler.runAfter(5000, internal.render.liveDeploymentPolling.pollRenderStatus, {
+          deploymentId: args.deploymentId,
+          renderServiceId: service.id,
+          renderDeployId: deployId,
+          apiKey: connection.apiKey,
+          serviceUrl: service.serviceDetails.url || `https://${service.name}.onrender.com`,
+          pollCount: 0,
+        });
+        
       } else {
         // If no auto-deploy, manually trigger one
         await ctx.runMutation(internal.deployments.appendLog, {
@@ -464,11 +480,22 @@ export const executeLiveDeployment = internalAction({
             deploymentId: args.deploymentId,
             message: `📡 Deploy initiated (ID: ${deploy.id})`,
           });
-
+          
           await ctx.runMutation(internal.deployments.appendLog, {
             deploymentId: args.deploymentId,
-            message: `⏳ Deploy status: ${deploy.status}`,
+            message: `⏳ Starting real-time build monitoring...`,
           });
+          
+          // Start polling for deployment status
+          await ctx.scheduler.runAfter(5000, internal.render.liveDeploymentPolling.pollRenderStatus, {
+            deploymentId: args.deploymentId,
+            renderServiceId: service.id,
+            renderDeployId: deploy.id,
+            apiKey: connection.apiKey,
+            serviceUrl: service.serviceDetails.url || `https://${service.name}.onrender.com`,
+            pollCount: 0,
+          });
+          
         } catch (deployError) {
           console.error("[Render] Failed to trigger manual deploy:", deployError);
           // Don't fail the whole deployment - service is created and may auto-deploy
@@ -485,26 +512,20 @@ export const executeLiveDeployment = internalAction({
           message: `🌐 Service URL: ${service.serviceDetails.url}`,
         });
       }
-
-      // Mark as success
-      await ctx.runMutation(internal.deployments.updateStatus, {
-        deploymentId: args.deploymentId,
-        status: "success",
-        log: `✅ Successfully deployed to Render with fresh configuration!`,
-      });
-
-      // Store production URL if available
+      
+      // Store production URL
       if (service.serviceDetails.url) {
         await ctx.runMutation(internal.deployments.updateProductionUrl, {
           deploymentId: args.deploymentId,
           productionUrl: service.serviceDetails.url,
         });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `🎉 Fresh deployment complete! SPA routing configured. Try hard refresh (Ctrl+Shift+R).`,
-        });
       }
+      
+      // Keep deployment in "running" state - polling will update when complete
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `📊 Real-time updates will appear below as build progresses...`,
+      });
 
     } catch (error) {
       console.error("[Render Deployment Error]", error);

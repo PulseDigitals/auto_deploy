@@ -384,6 +384,18 @@ export class RenderClient {
       return null;
     }
   }
+  
+  /**
+   * Get specific deploy by ID
+   */
+  async getDeploy(serviceId: string, deployId: string): Promise<RenderDeploy | null> {
+    try {
+      return await this.request<RenderDeploy>(`/services/${serviceId}/deploys/${deployId}`);
+    } catch (error) {
+      console.error(`Failed to fetch deploy ${deployId}:`, error);
+      return null;
+    }
+  }
 
   /**
    * Update service environment variables
