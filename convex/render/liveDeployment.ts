@@ -23,7 +23,7 @@ async function detectDefaultBranch(repoUrl: string): Promise<string> {
   try {
     // Extract owner/repo from GitHub URL
     // e.g. https://github.com/PulseDigitals/estate-management-system
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (!match) {
       console.log("[Branch Detection] Not a GitHub URL, defaulting to main");
       return "main";
@@ -90,7 +90,7 @@ async function detectMonorepoStructure(repoUrl: string, branch: string): Promise
   }
   
   try {
-    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (!match) {
       return { isMonorepo: false };
     }
@@ -281,21 +281,14 @@ export const executeLiveDeployment = internalAction({
           deploymentId: args.deploymentId,
           message: `📁 Standard repository structure detected`,
         });
-        
-        // Hint for common monorepo patterns
-        if (project.gitRepoUrl && (
-          project.gitRepoUrl.includes('estate-management') ||
-          project.name.toLowerCase().includes('estate')
-        )) {
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `💡 If your repo has a client/ folder, you may need to manually set Root Directory to "client" in Render dashboard`,
-          });
-        }
       }
       
       const publishPath = monorepoConfig.publishPath || "dist";
-      const buildCommand = monorepoConfig.buildCommand || "npm install && npm run build";
+      const baseBuildCommand = monorepoConfig.buildCommand || "npm install && npm run build";
+      
+      // Build-Time Injection: Automatically add _redirects for SPA routing
+      // This eliminates the need for manual GitHub commits or Render dashboard tweaking
+      const buildCommand = `${baseBuildCommand} && echo "/*    /index.html   200" > ${publishPath}/_redirects`;
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
@@ -311,12 +304,17 @@ export const executeLiveDeployment = internalAction({
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Build: ${buildCommand}`,
+        message: `   Build: ${baseBuildCommand}`,
       });
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `   Publish: ${publishPath}`,
+      });
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `   🔧 Auto-injecting SPA routing (_redirects)`,
       });
       
       const serviceInput: CreateServiceInput = {
@@ -423,7 +421,7 @@ export const executeLiveDeployment = internalAction({
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId: args.deploymentId,
         status: "success",
-        log: `✅ Successfully deployed to Render!`,
+        log: `✅ Successfully deployed to Render! (SPA routing auto-configured)`,
       });
 
       // Store production URL if available
@@ -431,6 +429,11 @@ export const executeLiveDeployment = internalAction({
         await ctx.runMutation(internal.deployments.updateProductionUrl, {
           deploymentId: args.deploymentId,
           productionUrl: service.serviceDetails.url,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🎉 Your app is live! All routes automatically configured for React Router.`,
         });
       }
 
