@@ -343,56 +343,67 @@ export const executeLiveDeployment = internalAction({
         message: `⚙️ Configuring service: ${serviceName}`,
       });
 
-      // Check if service already exists
+      // Check if service already exists - DELETE AND RECREATE for clean state
       let service: RenderService | undefined;
       
       try {
         const existingServices = await client.listServices();
         console.log(`[Render] Found ${existingServices.length} existing services`);
         
-        service = existingServices.find(s => s.name === serviceName);
+        const existingService = existingServices.find(s => s.name === serviceName);
         
-        if (service) {
-          console.log("[Render] Reusing existing service:", JSON.stringify(service, null, 2));
+        if (existingService) {
+          console.log("[Render] Found existing service - will delete and recreate for clean state");
           
           await ctx.runMutation(internal.deployments.appendLog, {
             deploymentId: args.deploymentId,
-            message: `♻️ Found existing service: ${service.id}`,
-          });
-          
-          // Update the service configuration
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `🔧 Updating service configuration...`,
-          });
-          
-          service = await client.updateService(service.id, {
-            rootDirectory: monorepoConfig.rootDirectory,
-            publishPath,
-            buildCommand,
+            message: `🗑️ Found existing service: ${existingService.id}`,
           });
           
           await ctx.runMutation(internal.deployments.appendLog, {
             deploymentId: args.deploymentId,
-            message: `✅ Service configuration updated`,
+            message: `🔥 Deleting existing service to ensure clean configuration...`,
           });
+          
+          try {
+            await client.deleteService(existingService.id);
+            console.log(`[Render] Successfully deleted service: ${existingService.id}`);
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId: args.deploymentId,
+              message: `✅ Old service deleted successfully`,
+            });
+            
+            // Wait a moment for Render to process the deletion
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+          } catch (deleteError) {
+            console.error("[Render] Error deleting service:", deleteError);
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId: args.deploymentId,
+              message: `⚠️ Could not delete old service, will try to create anyway`,
+            });
+          }
         }
       } catch (error) {
         console.log("[Render] Could not list services:", error);
       }
       
-      // Create new service only if it doesn't exist
-      if (!service) {
-        service = await client.createService(serviceInput);
-        
-        console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
-        console.log("[Render] Service ID:", service.id);
+      // Create fresh new service with correct configuration
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🆕 Creating fresh service with correct configuration...`,
+      });
+      
+      service = await client.createService(serviceInput);
+      
+      console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
+      console.log("[Render] Service ID:", service.id);
 
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `✅ Service created with ID: ${service.id}`,
-        });
-      }
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `✅ Service created with ID: ${service.id}`,
+      });
       
       // Validate service ID
       if (!service || !service.id) {
@@ -424,11 +435,11 @@ export const executeLiveDeployment = internalAction({
         });
       }
 
-      // Mark as success (or live_deploying if we want to poll status)
+      // Mark as success
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId: args.deploymentId,
         status: "success",
-        log: `✅ Successfully deployed to Render! (SPA routing auto-configured)`,
+        log: `✅ Successfully deployed to Render with fresh configuration!`,
       });
 
       // Store production URL if available
@@ -440,7 +451,7 @@ export const executeLiveDeployment = internalAction({
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `🎉 Your app is live! All routes automatically configured for React Router.`,
+          message: `🎉 Fresh deployment complete! SPA routing configured. Try hard refresh (Ctrl+Shift+R).`,
         });
       }
 
