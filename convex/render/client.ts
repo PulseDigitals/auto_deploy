@@ -270,8 +270,9 @@ export class RenderClient {
 
   /**
    * Create a new service
+   * Returns both the service and the automatically-created deploy ID
    */
-  async createService(input: CreateServiceInput): Promise<RenderService> {
+  async createService(input: CreateServiceInput): Promise<{ service: RenderService; deployId?: string }> {
     // Get owner ID first (required by Render API)
     const ownerId = await this.getOwnerId();
     
@@ -331,19 +332,26 @@ export class RenderClient {
     
     console.log("[Render] Request payload:", JSON.stringify(payload, null, 2));
 
-    const response = await this.request<{ service: RenderService; deployId: string }>("/services", {
+    const response = await this.request<{ service: RenderService; deployId?: string }>("/services", {
       method: "POST",
       body: payload,
     });
     
     // Render API returns the service wrapped in a response object
-    // Extract the service from the wrapper
+    // For static sites with a repo, Render automatically creates a deployment
     if (response && typeof response === 'object' && 'service' in response) {
-      return response.service;
+      console.log("[Render] Service created with automatic deployment:", response.deployId);
+      return {
+        service: response.service,
+        deployId: response.deployId,
+      };
     }
     
     // Fallback: if it's already unwrapped, return as-is
-    return response as unknown as RenderService;
+    return {
+      service: response as unknown as RenderService,
+      deployId: undefined,
+    };
   }
 
   /**

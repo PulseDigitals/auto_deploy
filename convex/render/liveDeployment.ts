@@ -395,10 +395,13 @@ export const executeLiveDeployment = internalAction({
         message: `🆕 Creating fresh service with correct configuration...`,
       });
       
-      service = await client.createService(serviceInput);
+      const createResult = await client.createService(serviceInput);
+      service = createResult.service;
+      const deployId = createResult.deployId;
       
       console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
       console.log("[Render] Service ID:", service.id);
+      console.log("[Render] Auto-created deploy ID:", deployId);
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
@@ -410,23 +413,40 @@ export const executeLiveDeployment = internalAction({
         throw new Error("Failed to get valid service ID from Render");
       }
 
-      // Trigger initial deploy
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `🔨 Triggering initial deployment...`,
-      });
+      // For static sites with a repo, Render automatically creates a deployment
+      if (deployId) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔨 Deployment automatically initiated by Render (ID: ${deployId})`,
+        });
+      } else {
+        // If no auto-deploy, manually trigger one
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔨 Manually triggering deployment...`,
+        });
 
-      const deploy = await client.triggerDeploy(service.id);
+        try {
+          const deploy = await client.triggerDeploy(service.id);
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `📡 Deploy initiated (ID: ${deploy.id})`,
+          });
 
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `📡 Deploy initiated (ID: ${deploy.id})`,
-      });
-
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `⏳ Deploy status: ${deploy.status}`,
-      });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `⏳ Deploy status: ${deploy.status}`,
+          });
+        } catch (deployError) {
+          console.error("[Render] Failed to trigger manual deploy:", deployError);
+          // Don't fail the whole deployment - service is created and may auto-deploy
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `⚠️ Could not manually trigger deploy, but service will auto-deploy from GitHub`,
+          });
+        }
+      }
 
       if (service.serviceDetails.url) {
         await ctx.runMutation(internal.deployments.appendLog, {

@@ -111,10 +111,17 @@ export const deployService = action({
 
     try {
       // Create service on Render
-      const service: RenderService = await client.createService(serviceInput);
+      const createResult = await client.createService(serviceInput);
+      const service = createResult.service;
+      let deployId = createResult.deployId;
 
-      // Trigger initial deploy
-      const deploy: RenderDeploy = await client.triggerDeploy(service.id);
+      // Trigger initial deploy if not auto-created
+      let deployStatus = "created";
+      if (!deployId) {
+        const deploy: RenderDeploy = await client.triggerDeploy(service.id);
+        deployId = deploy.id;
+        deployStatus = deploy.status;
+      }
 
       // Create deployment record in database
       const deploymentId: Id<"deployments"> = await ctx.runMutation(api.deployments.createDeployment, {
@@ -141,21 +148,21 @@ export const deployService = action({
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
-        message: `📦 Triggering initial deployment...`,
+        message: `📦 ${deployId ? 'Auto-deployment initiated' : 'Triggering initial deployment'}...`,
       });
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId,
-        message: `⏳ Deploy ID: ${deploy.id} (Status: ${deploy.status})`,
+        message: `⏳ Deploy ID: ${deployId} (Status: ${deployStatus})`,
       });
 
       return {
         success: true,
         serviceId: service.id,
-        deployId: deploy.id,
+        deployId: deployId || "unknown",
         deploymentId,
         serviceUrl: service.serviceDetails.url,
-        status: deploy.status,
+        status: deployStatus,
       };
     } catch (error) {
       // Log error and create failed deployment record
