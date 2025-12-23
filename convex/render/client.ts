@@ -379,6 +379,41 @@ export class RenderClient {
   }
 
   /**
+   * Update an existing service configuration
+   */
+  async updateService(serviceId: string, updates: Partial<CreateServiceInput>): Promise<RenderService> {
+    const serviceDetails: Record<string, unknown> = {};
+    
+    // Add root directory for monorepos
+    if (updates.rootDirectory !== undefined) {
+      serviceDetails.rootDir = updates.rootDirectory;
+    }
+    
+    // Add publish path (output directory)
+    if (updates.publishPath !== undefined) {
+      serviceDetails.publishPath = updates.publishPath;
+    }
+    
+    // Add build command
+    if (updates.buildCommand !== undefined) {
+      serviceDetails.buildCommand = updates.buildCommand;
+    }
+    
+    const payload: Record<string, unknown> = {};
+    
+    if (Object.keys(serviceDetails).length > 0) {
+      payload.serviceDetails = serviceDetails;
+    }
+    
+    console.log("[Render] Updating service with payload:", JSON.stringify(payload, null, 2));
+    
+    return this.request<RenderService>(`/services/${serviceId}`, {
+      method: "PATCH",
+      body: payload,
+    });
+  }
+
+  /**
    * Delete a service
    */
   async deleteService(serviceId: string): Promise<void> {

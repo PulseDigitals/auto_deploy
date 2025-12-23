@@ -262,6 +262,17 @@ export const executeLiveDeployment = internalAction({
           deploymentId: args.deploymentId,
           message: `📁 Standard repository structure detected`,
         });
+        
+        // Hint for common monorepo patterns
+        if (project.gitRepoUrl && (
+          project.gitRepoUrl.includes('estate-management') ||
+          project.name.toLowerCase().includes('estate')
+        )) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `💡 If your repo has a client/ folder, you may need to manually set Root Directory to "client" in Render dashboard`,
+          });
+        }
       }
       
       const publishPath = monorepoConfig.publishPath || "dist";
@@ -323,6 +334,23 @@ export const executeLiveDeployment = internalAction({
           await ctx.runMutation(internal.deployments.appendLog, {
             deploymentId: args.deploymentId,
             message: `♻️ Found existing service: ${service.id}`,
+          });
+          
+          // Update the service configuration
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `🔧 Updating service configuration...`,
+          });
+          
+          service = await client.updateService(service.id, {
+            rootDirectory: monorepoConfig.rootDirectory,
+            publishPath,
+            buildCommand,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `✅ Service configuration updated`,
           });
         }
       } catch (error) {
