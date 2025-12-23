@@ -136,6 +136,27 @@ export const executeLiveDeployment = internalAction({
         message: `📦 Creating Render service for: ${project.name}`,
       });
 
+      // Validate project has a GitHub repository
+      if (!project.gitRepoUrl) {
+        await ctx.runMutation(internal.deployments.updateStatus, {
+          deploymentId: args.deploymentId,
+          status: "failed",
+          log: `❌ Render requires a GitHub repository for static site deployments.`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 Please add a GitHub repository URL to your project settings and try again.`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Tip: Go to your project settings and add the GitHub repository URL (e.g., https://github.com/username/repo)`,
+        });
+        
+        return;
+      }
+      
       // Prepare service configuration
       // For now, create a basic static site - users can extend this later
       const serviceName = project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 40);
@@ -149,19 +170,17 @@ export const executeLiveDeployment = internalAction({
         autoDeploy: true,
       };
 
-      // If project has a git repo, use it
-      if (project.gitRepoUrl) {
-        serviceInput.repo = project.gitRepoUrl;
-        
-        // Detect default branch from GitHub
-        const defaultBranch = await detectDefaultBranch(project.gitRepoUrl);
-        serviceInput.branch = defaultBranch;
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `🌿 Detected branch: ${defaultBranch}`,
-        });
-      }
+      // Add git repo (required by Render)
+      serviceInput.repo = project.gitRepoUrl;
+      
+      // Detect default branch from GitHub
+      const defaultBranch = await detectDefaultBranch(project.gitRepoUrl);
+      serviceInput.branch = defaultBranch;
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🌿 Detected branch: ${defaultBranch}`,
+      });
 
       // Create service on Render
       await ctx.runMutation(internal.deployments.appendLog, {
