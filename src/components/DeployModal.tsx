@@ -29,6 +29,7 @@ interface DeployModalProps {
   isTestUser?: boolean;
   isSystemProject?: boolean;
   isAdmin?: boolean;
+  hasGitHubRepo?: boolean; // NEW: Track if project has GitHub repo
 }
 
 export default function DeployModal({
@@ -41,6 +42,7 @@ export default function DeployModal({
   isTestUser = false,
   isSystemProject = false,
   isAdmin = false,
+  hasGitHubRepo = false,
 }: DeployModalProps) {
   const [selectedProvider, setSelectedProvider] = useState<ProviderId>("vercel");
   const [enableLiveDeployment, setEnableLiveDeployment] = useState(false);
@@ -69,6 +71,9 @@ export default function DeployModal({
     selectedProvider === "vercel" || selectedProvider === "render" 
       ? isProviderConnected 
       : false;
+  
+  // CRITICAL: Render only supports GitHub pathway
+  const renderRequiresGitHub = selectedProvider === "render" && !hasGitHubRepo;
 
   const handleToggleLive = (checked: boolean) => {
     setEnableLiveDeployment(checked);
@@ -89,10 +94,12 @@ export default function DeployModal({
   // Can deploy if:
   // - Not live mode, OR
   // - Live mode AND consent checked AND (provider not Vercel/Render OR Vercel/Render is connected)
+  // - AND Render doesn't require GitHub (or has GitHub)
   const canDeploy = 
-    !enableLiveDeployment || 
+    !renderRequiresGitHub &&
+    (!enableLiveDeployment || 
     (enableLiveDeployment && consentChecked && 
-     ((selectedProvider !== "vercel" && selectedProvider !== "render") || hasProviderConnection));
+     ((selectedProvider !== "vercel" && selectedProvider !== "render") || hasProviderConnection)));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,6 +122,30 @@ export default function DeployModal({
               value={selectedProvider}
               onChange={setSelectedProvider}
             />
+            
+            {/* Render GitHub Requirement Warning */}
+            {renderRequiresGitHub && (
+              <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/30">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-400 flex-shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs text-orange-200 font-medium">
+                      Render requires GitHub
+                    </p>
+                    <p className="text-xs text-orange-200/80">
+                      This project uses the codebase pathway. Render only supports GitHub-based deployments.
+                    </p>
+                    <p className="text-xs text-orange-200/80 mt-2">
+                      <strong>Solutions:</strong>
+                    </p>
+                    <ul className="text-xs text-orange-200/80 list-disc list-inside space-y-0.5 ml-1">
+                      <li>Use Vercel (supports both codebase and GitHub pathways)</li>
+                      <li>Push your code to GitHub and add the repository URL to this project</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Live Deployment Toggle */}

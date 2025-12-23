@@ -231,22 +231,53 @@ export const executeLiveDeployment = internalAction({
         message: `📦 Creating Render service for: ${project.name}`,
       });
 
-      // Validate project has a GitHub repository
-      if (!project.gitRepoUrl) {
+      // CRITICAL: Check deployment source - Render only supports GitHub pathway
+      const deploymentSource = deployment.deploymentSource || "github";
+      
+      if (deploymentSource === "zip") {
+        // Render does NOT support codebase/ZIP pathway - API limitation
         await ctx.runMutation(internal.deployments.updateStatus, {
           deploymentId: args.deploymentId,
           status: "failed",
-          log: `❌ Render requires a GitHub repository for static site deployments.`,
+          log: `❌ Render does not support codebase pathway deployments`,
         });
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `📋 Please add a GitHub repository URL to your project settings and try again.`,
+          message: `📋 Render only supports GitHub-based deployments for static sites`,
         });
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `💡 Tip: Go to your project settings and add the GitHub repository URL (e.g., https://github.com/username/repo)`,
+          message: `💡 Solution 1: Use Vercel for codebase pathway (Vercel supports ZIP uploads)`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Solution 2: Push your code to GitHub and use GitHub pathway with Render`,
+        });
+        
+        return;
+      }
+      
+      // For GitHub pathway, validate repository URL
+      const gitRepoUrl = deployment.sourceGitHubUrl || project.gitRepoUrl;
+      
+      if (!gitRepoUrl) {
+        await ctx.runMutation(internal.deployments.updateStatus, {
+          deploymentId: args.deploymentId,
+          status: "failed",
+          log: `❌ GitHub repository URL is required for Render deployments`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 Please add a GitHub repository URL to your project settings`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Tip: Go to project settings and add the GitHub URL (e.g., https://github.com/username/repo)`,
         });
         
         return;
@@ -256,7 +287,7 @@ export const executeLiveDeployment = internalAction({
       const serviceName = project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 40);
       
       // Detect default branch from GitHub
-      const defaultBranch = await detectDefaultBranch(project.gitRepoUrl);
+      const defaultBranch = await detectDefaultBranch(gitRepoUrl);
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
@@ -269,7 +300,7 @@ export const executeLiveDeployment = internalAction({
         message: `🔍 Analyzing repository structure...`,
       });
       
-      const monorepoConfig = await detectMonorepoStructure(project.gitRepoUrl, defaultBranch);
+      const monorepoConfig = await detectMonorepoStructure(gitRepoUrl, defaultBranch);
       
       if (monorepoConfig.isMonorepo) {
         await ctx.runMutation(internal.deployments.appendLog, {
@@ -331,7 +362,7 @@ export const executeLiveDeployment = internalAction({
         buildCommand,
         region: "oregon",
         autoDeploy: true,
-        repo: project.gitRepoUrl,
+        repo: gitRepoUrl,
         branch: defaultBranch,
         rootDirectory: monorepoConfig.rootDirectory,
         publishPath,

@@ -1519,6 +1519,7 @@ export default function ProjectDetail() {
         isTestUser={currentUser?.isTestUser || false}
         isSystemProject={project?.isSystemProject || false}
         isAdmin={isAdmin || false}
+        hasGitHubRepo={!!project?.gitRepoUrl}
       />
       
       <UpgradeModal
