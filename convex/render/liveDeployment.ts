@@ -288,7 +288,12 @@ export const executeLiveDeployment = internalAction({
       
       // Build-Time Injection: Automatically add _redirects for SPA routing
       // This eliminates the need for manual GitHub commits or Render dashboard tweaking
-      const buildCommand = `${baseBuildCommand} && echo "/*    /index.html   200" > ${publishPath}/_redirects`;
+      // Calculate the correct path: if there's a rootDirectory, prefix it to the publishPath
+      const redirectsPath = monorepoConfig.rootDirectory 
+        ? `${monorepoConfig.rootDirectory}/${publishPath}/_redirects`
+        : `${publishPath}/_redirects`;
+      
+      const buildCommand = `${baseBuildCommand} && echo "/*    /index.html   200" > ${redirectsPath}`;
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
@@ -314,7 +319,7 @@ export const executeLiveDeployment = internalAction({
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   🔧 Auto-injecting SPA routing (_redirects)`,
+        message: `   🔧 Auto-injecting SPA routing at: ${redirectsPath}`,
       });
       
       const serviceInput: CreateServiceInput = {
