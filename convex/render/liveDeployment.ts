@@ -286,14 +286,16 @@ export const executeLiveDeployment = internalAction({
       const publishPath = monorepoConfig.publishPath || "dist";
       const baseBuildCommand = monorepoConfig.buildCommand || "npm install && npm run build";
       
-      // Build-Time Injection: Automatically add _redirects for SPA routing
-      // This eliminates the need for manual GitHub commits or Render dashboard tweaking
-      // Calculate the correct path: if there's a rootDirectory, prefix it to the publishPath
+      // Build-Time Injection: Automatically add _redirects for SPA routing using Node.js
+      // This is more robust than shell echo commands and works across all environments
       const redirectsPath = monorepoConfig.rootDirectory 
         ? `${monorepoConfig.rootDirectory}/${publishPath}/_redirects`
         : `${publishPath}/_redirects`;
       
-      const buildCommand = `${baseBuildCommand} && echo "/*    /index.html   200" > ${redirectsPath}`;
+      // Use Node.js to create the file (more reliable than echo)
+      const nodeScript = `node -e "const fs=require('fs');const path=require('path');const dir=path.dirname('${redirectsPath}');if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true});}fs.writeFileSync('${redirectsPath}','/*    /index.html   200\\\\n');console.log('✓ _redirects created at ${redirectsPath}');"`;
+      
+      const buildCommand = `${baseBuildCommand} && ${nodeScript}`;
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
@@ -319,7 +321,7 @@ export const executeLiveDeployment = internalAction({
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   🔧 Auto-injecting SPA routing at: ${redirectsPath}`,
+        message: `   🔧 Auto-injecting SPA routing (Node.js) at: ${redirectsPath}`,
       });
       
       const serviceInput: CreateServiceInput = {
