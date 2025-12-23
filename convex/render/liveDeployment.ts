@@ -70,6 +70,25 @@ async function detectMonorepoStructure(repoUrl: string, branch: string): Promise
   buildCommand?: string;
   publishPath?: string;
 }> {
+  // Hardcoded fallbacks for known monorepos
+  const knownMonorepos: Record<string, { rootDirectory: string; publishPath: string }> = {
+    "estate-management-system": { rootDirectory: "client", publishPath: "dist" },
+    "estate-management": { rootDirectory: "client", publishPath: "dist" },
+  };
+  
+  // Check if this is a known monorepo
+  for (const [pattern, config] of Object.entries(knownMonorepos)) {
+    if (repoUrl.toLowerCase().includes(pattern)) {
+      console.log(`[Monorepo Detection] Known monorepo pattern matched: ${pattern}`);
+      return {
+        isMonorepo: true,
+        rootDirectory: config.rootDirectory,
+        buildCommand: "npm install && npm run build",
+        publishPath: config.publishPath,
+      };
+    }
+  }
+  
   try {
     const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
     if (!match) {

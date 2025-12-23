@@ -384,9 +384,9 @@ export class RenderClient {
   async updateService(serviceId: string, updates: Partial<CreateServiceInput>): Promise<RenderService> {
     const serviceDetails: Record<string, unknown> = {};
     
-    // Add root directory for monorepos
-    if (updates.rootDirectory !== undefined) {
-      serviceDetails.rootDir = updates.rootDirectory;
+    // Add root directory for monorepos (send explicitly, even if empty string)
+    if ("rootDirectory" in updates) {
+      serviceDetails.rootDir = updates.rootDirectory || "";
     }
     
     // Add publish path (output directory)
