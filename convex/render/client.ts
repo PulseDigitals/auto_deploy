@@ -331,10 +331,19 @@ export class RenderClient {
     
     console.log("[Render] Request payload:", JSON.stringify(payload, null, 2));
 
-    return this.request<RenderService>("/services", {
+    const response = await this.request<{ service: RenderService; deployId: string }>("/services", {
       method: "POST",
       body: payload,
     });
+    
+    // Render API returns the service wrapped in a response object
+    // Extract the service from the wrapper
+    if (response && typeof response === 'object' && 'service' in response) {
+      return response.service;
+    }
+    
+    // Fallback: if it's already unwrapped, return as-is
+    return response as unknown as RenderService;
   }
 
   /**
