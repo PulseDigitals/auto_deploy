@@ -61,6 +61,82 @@ async function detectDefaultBranch(repoUrl: string): Promise<string> {
 }
 
 /**
+ * Detect monorepo structure and configuration
+ * Checks for common patterns like client/, frontend/, packages/
+ */
+async function detectMonorepoStructure(repoUrl: string, branch: string): Promise<{
+  isMonorepo: boolean;
+  rootDirectory?: string;
+  buildCommand?: string;
+  publishPath?: string;
+}> {
+  try {
+    const match = repoUrl.match(/github\.com\/([^\/]+)\/([^\/]+)/);
+    if (!match) {
+      return { isMonorepo: false };
+    }
+    
+    const [, owner, repo] = match;
+    const cleanRepo = repo.replace(/\.git$/, "");
+    
+    console.log(`[Monorepo Detection] Checking ${owner}/${cleanRepo}...`);
+    
+    // Fetch repository contents
+    const response = await fetch(
+      `https://api.github.com/repos/${owner}/${cleanRepo}/contents?ref=${branch}`,
+      {
+        headers: {
+          "Accept": "application/vnd.github.v3+json",
+          "User-Agent": "1-Click-Deploy",
+        },
+      }
+    );
+    
+    if (!response.ok) {
+      console.log(`[Monorepo Detection] Failed to fetch contents: ${response.status}`);
+      return { isMonorepo: false };
+    }
+    
+    const contents = await response.json() as Array<{ name: string; type: string }>;
+    const directories = contents.filter(item => item.type === "directory").map(item => item.name);
+    
+    console.log(`[Monorepo Detection] Found directories:`, directories);
+    
+    // Check for common monorepo patterns
+    const commonFrontendDirs = ["client", "frontend", "app", "web", "www"];
+    const frontendDir = commonFrontendDirs.find(dir => directories.includes(dir));
+    
+    if (frontendDir) {
+      console.log(`[Monorepo Detection] Detected monorepo with frontend in: ${frontendDir}`);
+      return {
+        isMonorepo: true,
+        rootDirectory: frontendDir,
+        buildCommand: "npm install && npm run build",
+        publishPath: "dist", // Common Vite/React output directory
+      };
+    }
+    
+    // Check if packages/ exists (common in monorepos)
+    if (directories.includes("packages")) {
+      console.log("[Monorepo Detection] Found 'packages' directory");
+      return {
+        isMonorepo: true,
+        rootDirectory: "packages",
+        buildCommand: "npm install && npm run build",
+        publishPath: "dist",
+      };
+    }
+    
+    console.log("[Monorepo Detection] No monorepo pattern detected");
+    return { isMonorepo: false };
+    
+  } catch (error) {
+    console.error("[Monorepo Detection] Error:", error);
+    return { isMonorepo: false };
+  }
+}
+
+/**
  * Execute live deployment to Render
  * Entry point from deployment pipeline
  */
@@ -158,29 +234,48 @@ export const executeLiveDeployment = internalAction({
       }
       
       // Prepare service configuration
-      // For now, create a basic static site - users can extend this later
       const serviceName = project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 40);
-      
-      const serviceInput: CreateServiceInput = {
-        name: serviceName,
-        type: "static_site",
-        runtime: "node",
-        buildCommand: "npm run build",
-        region: "oregon",
-        autoDeploy: true,
-      };
-
-      // Add git repo (required by Render)
-      serviceInput.repo = project.gitRepoUrl;
       
       // Detect default branch from GitHub
       const defaultBranch = await detectDefaultBranch(project.gitRepoUrl);
-      serviceInput.branch = defaultBranch;
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `🌿 Detected branch: ${defaultBranch}`,
       });
+      
+      // Detect monorepo structure
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🔍 Analyzing repository structure...`,
+      });
+      
+      const monorepoConfig = await detectMonorepoStructure(project.gitRepoUrl, defaultBranch);
+      
+      if (monorepoConfig.isMonorepo) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📦 Monorepo detected! Frontend in: ${monorepoConfig.rootDirectory}`,
+        });
+      } else {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📁 Standard repository structure detected`,
+        });
+      }
+      
+      const serviceInput: CreateServiceInput = {
+        name: serviceName,
+        type: "static_site",
+        runtime: "node",
+        buildCommand: monorepoConfig.buildCommand || "npm run build",
+        region: "oregon",
+        autoDeploy: true,
+        repo: project.gitRepoUrl,
+        branch: defaultBranch,
+        rootDirectory: monorepoConfig.rootDirectory,
+        publishPath: monorepoConfig.publishPath,
+      };
 
       // Create service on Render
       await ctx.runMutation(internal.deployments.appendLog, {

@@ -48,8 +48,10 @@ export interface CreateServiceInput {
   region?: RenderRegion;
   repo?: string; // GitHub repository URL
   branch?: string; // Git branch (default: main)
+  rootDirectory?: string; // Root directory for monorepos (e.g., "client")
   buildCommand?: string;
   startCommand?: string;
+  publishPath?: string; // Output directory (e.g., "dist", "build")
   envVars?: RenderEnvVar[];
   autoDeploy?: boolean; // Auto-deploy on git push
 }
@@ -292,6 +294,16 @@ export class RenderClient {
     const serviceDetails: Record<string, unknown> = {
       autoDeploy: input.autoDeploy !== false ? "yes" : "no",
     };
+    
+    // Add root directory for monorepos (e.g., "client")
+    if (input.rootDirectory) {
+      serviceDetails.rootDir = input.rootDirectory;
+    }
+    
+    // Add publish path (output directory)
+    if (input.publishPath) {
+      serviceDetails.publishPath = input.publishPath;
+    }
     
     // For static_site: region is NOT a valid parameter (Render API restriction)
     // For other service types: region IS valid
