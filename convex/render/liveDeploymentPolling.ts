@@ -94,7 +94,16 @@ export const pollRenderStatus = internalAction({
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // DEPLOYMENT VALIDATION
         // Verify that the deployed app is actually working
+        // Wait 30 seconds for Render CDN to propagate files
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId,
+          message: `⏳ Waiting 30s for Render CDN to propagate files...`,
+        });
+        
+        // Wait 30 seconds before validation
+        await new Promise(resolve => setTimeout(resolve, 30000));
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId,
@@ -149,7 +158,36 @@ export const pollRenderStatus = internalAction({
             }
           }
           
-          if (validation.needsHealing) {
+          // If root path is 404, this is a fundamental serving issue, not just routing
+          const rootFailed = validation.checkedRoutes.some(r => r.route === "/" && !r.success);
+          
+          if (rootFailed) {
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `❌ Critical: Root path (/) is not serving files`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `🔍 This suggests a build output or publish path issue`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `📋 Check Render dashboard → Your Service → Logs tab`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `💡 Verify build outputs to client/dist directory`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `💡 Or try: Render dashboard → Settings → Change publish directory`,
+            });
+          } else if (validation.needsHealing) {
+            // Only routing issues (root works, but deep routes don't)
             await ctx.runMutation(internal.deployments.appendLog, {
               deploymentId,
               message: `🔧 Solution: Add a _redirects file to fix SPA routing`,
@@ -173,14 +211,16 @@ export const pollRenderStatus = internalAction({
           
           await ctx.runMutation(internal.deployments.appendLog, {
             deploymentId,
-            message: `🌐 Service URL: ${serviceUrl} (may show errors until routing is fixed)`,
+            message: `🌐 Service URL: ${serviceUrl}`,
           });
           
           // Mark as success but with warnings
           await ctx.runMutation(internal.deployments.updateStatus, {
             deploymentId,
             status: "success",
-            log: `⚠️ Deployment complete but validation found routing issues`,
+            log: rootFailed 
+              ? `⚠️ Deployment complete but files are not being served (check build output)`
+              : `⚠️ Deployment complete but validation found routing issues`,
           });
         }
         
