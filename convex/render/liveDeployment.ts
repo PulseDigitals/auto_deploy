@@ -718,13 +718,26 @@ export const executeLiveDeployment = internalAction({
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `🔄 Env vars will take effect on next deployment`,
+          message: `🔄 Triggering fresh deployment with environment variables...`,
         });
         
-        // Note: We don't trigger a fresh deploy here because:
-        // 1. Render already auto-started a deploy
-        // 2. Env vars are stored and will be used on next rebuild
-        // 3. User can manually trigger redeploy from Render dashboard if needed
+        // CRITICAL: Trigger a fresh deployment so env vars take effect immediately
+        // The first auto-deploy doesn't have the env vars, so we need a second one
+        try {
+          const freshDeploy = await client.triggerDeploy(service.id);
+          deployId = freshDeploy.id; // Update deployId to track the fresh deployment
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `🚀 Fresh deployment started with auth configured (ID: ${freshDeploy.id})`,
+          });
+        } catch (deployTriggerError) {
+          console.error("[Render] Failed to trigger fresh deploy:", deployTriggerError);
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `⚠️ Using initial deployment - env vars will apply on next automatic deploy`,
+          });
+        }
         
       } catch (envError) {
         console.error("[Render] Failed to update env vars:", envError);
