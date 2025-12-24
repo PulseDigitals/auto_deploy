@@ -367,21 +367,14 @@ export const executeLiveDeployment = internalAction({
         message: `⚙️ Configuration:`,
       });
       
-      if (deploymentPlan.rootDir) {
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   Root: ${deploymentPlan.rootDir}`,
-        });
-      }
-      
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Build: ${deploymentPlan.buildCommand}`,
+        message: `   Build: npm run build:frontend`,
       });
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Publish: ${deploymentPlan.publishDir}`,
+        message: `   Publish: client/dist`,
       });
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -418,13 +411,9 @@ export const executeLiveDeployment = internalAction({
           message: `📝 Please add the following file to your repository:`,
         });
         
-        const redirectsPath = fingerprint.hasMonorepo 
-          ? `${fingerprint.frontendRoot}/public/_redirects`
-          : `public/_redirects`;
-        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `   Location: ${redirectsPath}`,
+          message: `   Location: client/public/_redirects`,
         });
         
         await ctx.runMutation(internal.deployments.appendLog, {
@@ -444,13 +433,13 @@ export const executeLiveDeployment = internalAction({
         name: serviceName,
         type: "static_site",
         runtime: "node",
-        buildCommand: deploymentPlan.buildCommand,
+        buildCommand: "npm install && npm run build:frontend", // Use the root package.json script
         region: "oregon",
         autoDeploy: true,
         repo: gitRepoUrl,
         branch: defaultBranch,
-        rootDirectory: deploymentPlan.rootDir,
-        publishPath: deploymentPlan.publishDir,
+        rootDirectory: undefined, // Don't set root - build from repo root
+        publishPath: "client/dist", // Output is at client/dist from root
         // Note: 'routes' field is not supported by Render's REST API for static sites
         // Must use _redirects file in repository instead
       };
