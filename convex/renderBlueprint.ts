@@ -66,6 +66,7 @@ export function generateRenderBlueprint(
 
 /**
  * Determines if a project requires Blueprint-based deployment
+ * Uses safe defaults: For React/Vite SPAs on Render, ALWAYS use Blueprint
  */
 export function requiresBlueprint(fingerprint: {
   appType?: string;
@@ -73,12 +74,20 @@ export function requiresBlueprint(fingerprint: {
   routerMode?: string;
   needsSpaRewrite?: boolean;
 }): boolean {
-  return (
+  // Primary check: Does the fingerprint explicitly say it needs SPA rewrites?
+  if (fingerprint.needsSpaRewrite === true) {
+    return true;
+  }
+  
+  // Fallback: For any React/Vite static SPA, enable Blueprint (safe default)
+  // This prevents 404s even if detection wasn't perfect
+  const isReactSpa =
     fingerprint.appType === "STATIC_SPA" &&
-    (fingerprint.framework === "React" || fingerprint.framework === "Vite") &&
-    fingerprint.routerMode === "BrowserRouter" &&
-    fingerprint.needsSpaRewrite === true
-  );
+    (fingerprint.framework === "vite-react" || fingerprint.framework === "create-react-app");
+  
+  const isNotHashRouter = fingerprint.routerMode !== "hash";
+  
+  return isReactSpa && isNotHashRouter;
 }
 
 /**

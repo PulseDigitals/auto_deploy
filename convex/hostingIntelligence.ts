@@ -161,16 +161,23 @@ export function analyzeCodebase(
   else if (hasApi) backendRoot = "api";
 
   // Detect router mode
-  const fileContents = files.join("\n").toLowerCase();
+  // NOTE: We only have file paths, not file contents from GitHub API
+  // So we must infer routing mode from dependencies and framework type
   const usesReactRouter =
     packageJson?.dependencies?.["react-router-dom"] !== undefined ||
     packageJson?.dependencies?.["react-router"] !== undefined;
+  const fileContents = files.join("\n").toLowerCase();
   const usesHashRouter = fileContents.includes("hashrouter");
-  const usesBrowserRouter = fileContents.includes("browserrouter") || usesReactRouter;
-
+  
+  // For React/Vite SPAs: Default to browser routing (industry standard)
+  // Only override if we detect HashRouter explicitly
   let routerMode: "browser" | "hash" | "none" = "none";
-  if (usesHashRouter) routerMode = "hash";
-  else if (usesBrowserRouter) routerMode = "browser";
+  if (usesHashRouter) {
+    routerMode = "hash";
+  } else if (usesReactRouter || (hasVite && hasReact)) {
+    // React apps with router OR any Vite+React app should use browser routing
+    routerMode = "browser";
+  }
 
   // Determine framework
   let framework: CodebaseFingerprint["framework"] = "unknown";
@@ -205,7 +212,11 @@ export function analyzeCodebase(
   }
 
   // Does this need SPA rewrite?
-  const needsSpaRewrite = routerMode === "browser" && framework !== "nextjs";
+  // For React/Vite SPAs: ALWAYS enable SPA rewrites (safe default for Render)
+  // This prevents 404s on client-side routes
+  const needsSpaRewrite =
+    (framework === "vite-react" || framework === "create-react-app") &&
+    routerMode !== "hash"; // Hash routing doesn't need server rewrites
 
   return {
     framework,
