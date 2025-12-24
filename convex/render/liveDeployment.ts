@@ -564,6 +564,56 @@ export const executeLiveDeployment = internalAction({
         needsRedirectsFile = true;
       }
       
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // AUTOMATIC ENVIRONMENT VARIABLE PREPARATION
+      // Prepare env vars BEFORE service creation so first deploy has them
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
+      const productionUrl = `https://${serviceName}.onrender.com`;
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🔧 Preparing environment variables for production...`,
+      });
+      
+      // Prepare environment variables for production deployment
+      const productionEnvVars: RenderEnvVar[] = [
+        {
+          key: "VITE_APP_URL",
+          value: productionUrl,
+        },
+        {
+          key: "NODE_ENV",
+          value: "production",
+        },
+      ];
+      
+      // Inject auth environment variables for Hercules Auth
+      // These enable OIDC authentication to work in production
+      const authAuthority = process.env.VITE_HERCULES_OIDC_AUTHORITY || "https://hercules.app";
+      const authClientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
+      
+      if (authAuthority && authClientId) {
+        productionEnvVars.push({
+          key: "VITE_HERCULES_OIDC_AUTHORITY",
+          value: authAuthority,
+        });
+        productionEnvVars.push({
+          key: "VITE_HERCULES_OIDC_CLIENT_ID",
+          value: authClientId,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `✅ Auth configured: ${authAuthority}`,
+        });
+      }
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `✅ Environment: VITE_APP_URL → ${productionUrl}`,
+      });
+      
       const serviceInput: CreateServiceInput = {
         name: serviceName,
         type: "static_site",
@@ -575,6 +625,7 @@ export const executeLiveDeployment = internalAction({
         branch: defaultBranch,
         rootDirectory: deploymentPlan.rootDir, // Only set for monorepos
         publishPath: deploymentPlan.publishDir, // Use plan's publishDir
+        envVars: productionEnvVars, // Include env vars at service creation!
         // Note: 'routes' field is not supported by Render's REST API for static sites
         // Must use _redirects file in repository instead
       };
@@ -639,7 +690,7 @@ export const executeLiveDeployment = internalAction({
       
       const createResult = await client.createService(serviceInput);
       service = createResult.service;
-      let deployId = createResult.deployId; // Use 'let' so we can update it after env var injection
+      let deployId = createResult.deployId;
       
       console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
       console.log("[Render] Service ID:", service.id);
@@ -650,106 +701,14 @@ export const executeLiveDeployment = internalAction({
         message: `✅ Service created with ID: ${service.id}`,
       });
       
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `🚀 Initial deployment with environment variables configured`,
+      });
+      
       // Validate service ID
       if (!service || !service.id) {
         throw new Error("Failed to get valid service ID from Render");
-      }
-      
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      // AUTOMATIC ENVIRONMENT VARIABLE INJECTION
-      // Inject production URL and auth configuration for 1-click deploy
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      
-      const productionUrl = service.serviceDetails.url || `https://${serviceName}.onrender.com`;
-      
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `🔧 Injecting environment variables for production...`,
-      });
-      
-      // Prepare environment variables for production deployment
-      const productionEnvVars: RenderEnvVar[] = [
-        {
-          key: "VITE_APP_URL",
-          value: productionUrl,
-        },
-        {
-          key: "NODE_ENV",
-          value: "production",
-        },
-      ];
-      
-      // Inject auth environment variables for Hercules Auth
-      // These enable OIDC authentication to work in production
-      const authAuthority = process.env.VITE_HERCULES_OIDC_AUTHORITY || "https://hercules.app";
-      const authClientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
-      
-      if (authAuthority && authClientId) {
-        productionEnvVars.push({
-          key: "VITE_HERCULES_OIDC_AUTHORITY",
-          value: authAuthority,
-        });
-        productionEnvVars.push({
-          key: "VITE_HERCULES_OIDC_CLIENT_ID",
-          value: authClientId,
-        });
-      }
-      
-      // Update Render service with environment variables
-      try {
-        await client.updateEnvVars(service.id, productionEnvVars);
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `✅ Environment variables configured automatically`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   • VITE_APP_URL → ${productionUrl}`,
-        });
-        
-        if (authAuthority && authClientId) {
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `   • Auth configured for production (${authAuthority})`,
-          });
-        }
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `🔄 Triggering fresh deployment with environment variables...`,
-        });
-        
-        // CRITICAL: Trigger a fresh deployment so env vars take effect immediately
-        // The first auto-deploy doesn't have the env vars, so we need a second one
-        try {
-          const freshDeploy = await client.triggerDeploy(service.id);
-          deployId = freshDeploy.id; // Update deployId to track the fresh deployment
-          
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `🚀 Fresh deployment started with auth configured (ID: ${freshDeploy.id})`,
-          });
-        } catch (deployTriggerError) {
-          console.error("[Render] Failed to trigger fresh deploy:", deployTriggerError);
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `⚠️ Using initial deployment - env vars will apply on next automatic deploy`,
-          });
-        }
-        
-      } catch (envError) {
-        console.error("[Render] Failed to update env vars:", envError);
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `⚠️ Could not auto-configure env vars`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `💡 Add manually: Render Dashboard → Environment → Add VITE_APP_URL`,
-        });
       }
 
       // For static sites with a repo, Render automatically creates a deployment
