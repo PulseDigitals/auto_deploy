@@ -590,8 +590,9 @@ export const executeLiveDeployment = internalAction({
       
       // Inject auth environment variables for Hercules Auth
       // These enable OIDC authentication to work in production
-      const authAuthority = process.env.VITE_HERCULES_OIDC_AUTHORITY || "https://hercules.app";
-      const authClientId = process.env.VITE_HERCULES_OIDC_CLIENT_ID;
+      // Note: Backend uses HERCULES_* (not VITE_*), but we send to Render as VITE_*
+      const authAuthority = process.env.HERCULES_OIDC_AUTHORITY || "https://hercules.app";
+      const authClientId = process.env.HERCULES_OIDC_CLIENT_ID;
       
       if (authAuthority && authClientId) {
         productionEnvVars.push({
