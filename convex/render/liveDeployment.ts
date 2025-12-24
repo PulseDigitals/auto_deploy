@@ -430,10 +430,34 @@ export const executeLiveDeployment = internalAction({
       // SMART FALLBACK: If GitHub API failed, infer package manager from repo name patterns
       // Most modern repos use pnpm, so default to it for better dependency resolution
       if (analysis.files.length === 0) {
-        analysis.files = ["package.json", "pnpm-lock.yaml", "vite.config.ts", "index.html"];
+        // Provide a more comprehensive fallback that will correctly detect React/Vite apps
+        analysis.files = [
+          "package.json",
+          "pnpm-lock.yaml",
+          "vite.config.ts",
+          "index.html",
+          "src/main.tsx",
+          "src/App.tsx",
+          "src/index.css",
+          "public/",
+          "tsconfig.json",
+        ];
+        
+        // Create a minimal package.json fallback with React dependencies
+        analysis.packageJson = {
+          dependencies: {
+            "react": "^19.0.0",
+            "react-dom": "^19.0.0",
+            "react-router-dom": "^7.0.0",
+          },
+          scripts: {
+            "build": "tsc && vite build",
+          },
+        };
+        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `💡 Assuming pnpm package manager (modern default)`,
+          message: `💡 Using smart fallback configuration (Vite + React + pnpm)`,
         });
       }
       
@@ -694,29 +718,24 @@ export const executeLiveDeployment = internalAction({
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `🔄 Triggering rebuild with updated env vars...`,
+          message: `🔄 Env vars will take effect on next deployment`,
         });
         
-        // Cancel the auto-started deploy and trigger a new one with env vars
-        // Wait a moment for env vars to propagate
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Trigger a fresh deploy with the new env vars
-        const freshDeploy = await client.triggerDeploy(service.id);
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `✅ Rebuild initiated with env vars (ID: ${freshDeploy.id})`,
-        });
-        
-        // Update our tracking to use the fresh deploy ID
-        deployId = freshDeploy.id;
+        // Note: We don't trigger a fresh deploy here because:
+        // 1. Render already auto-started a deploy
+        // 2. Env vars are stored and will be used on next rebuild
+        // 3. User can manually trigger redeploy from Render dashboard if needed
         
       } catch (envError) {
         console.error("[Render] Failed to update env vars:", envError);
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `⚠️ Could not auto-configure env vars - auth may need manual setup`,
+          message: `⚠️ Could not auto-configure env vars`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Add manually: Render Dashboard → Environment → Add VITE_APP_URL`,
         });
       }
 
