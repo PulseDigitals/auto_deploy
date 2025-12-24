@@ -94,6 +94,7 @@ export interface RenderDeploy {
   createdAt: string;
   updatedAt: string;
   finishedAt?: string;
+  finishedAtMessage?: string; // Error message when build fails
 }
 
 /**

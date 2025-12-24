@@ -263,15 +263,71 @@ export const pollRenderStatus = internalAction({
           message: `❌ ${errorMessage}`,
         });
         
+        // Show actual error message from Render if available
+        if (deploy.finishedAtMessage) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `💬 Render error: ${deploy.finishedAtMessage}`,
+          });
+        }
+        
+        // Common failure patterns with solutions
+        const errorLower = (deploy.finishedAtMessage || "").toLowerCase();
+        
+        if (errorLower.includes("repository not found") || errorLower.includes("404")) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `🔍 Repository access issue detected`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `📋 Possible causes:`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `   • Repository doesn't exist or was deleted`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `   • Repository is private and Render doesn't have access`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `   • Repository name/URL is incorrect`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `💡 Solution: Go to Render dashboard → Connect GitHub → Authorize repository access`,
+          });
+        } else if (errorLower.includes("permission") || errorLower.includes("forbidden")) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `🔒 Render doesn't have permission to access your repository`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `💡 Solution: Go to Render dashboard → Connect GitHub → Grant repository access`,
+          });
+        } else if (errorLower.includes("npm") || errorLower.includes("package")) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `📦 Build command or dependency issue`,
+          });
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `💡 Check that package.json exists and build script is correct`,
+          });
+        }
+        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId,
-          message: `📋 Check build logs in Render dashboard for details`,
+          message: `📋 Full build logs: Render dashboard → Your Service → Logs tab`,
         });
         
         await ctx.runMutation(internal.deployments.updateStatus, {
           deploymentId,
           status: "failed",
-          log: errorMessage,
+          log: deploy.finishedAtMessage || errorMessage,
         });
         
         return; // Stop polling

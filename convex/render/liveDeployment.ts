@@ -18,15 +18,16 @@ import type { Doc, Id } from "../_generated/dataModel.d.ts";
 /**
  * Detect the default branch of a GitHub repository
  * Tries to fetch from GitHub API, falls back to common branch names
+ * Returns null if repository is not accessible
  */
-async function detectDefaultBranch(repoUrl: string): Promise<string> {
+async function detectDefaultBranch(repoUrl: string): Promise<{ branch: string; accessible: boolean; error?: string }> {
   try {
     // Extract owner/repo from GitHub URL
     // e.g. https://github.com/PulseDigitals/estate-management-system
     const match = repoUrl.match(/github\.com\/([^/]+)\/([^/]+)/);
     if (!match) {
       console.log("[Branch Detection] Not a GitHub URL, defaulting to main");
-      return "main";
+      return { branch: "main", accessible: true };
     }
     
     const [, owner, repo] = match;
@@ -46,18 +47,32 @@ async function detectDefaultBranch(repoUrl: string): Promise<string> {
       const data = await response.json() as { default_branch?: string };
       if (data.default_branch) {
         console.log(`[Branch Detection] Found default branch: ${data.default_branch}`);
-        return data.default_branch;
+        return { branch: data.default_branch, accessible: true };
       }
+      return { branch: "main", accessible: true };
+    } else if (response.status === 404) {
+      console.log(`[Branch Detection] Repository not found (404)`);
+      return { 
+        branch: "main", 
+        accessible: false, 
+        error: "Repository not found or is private" 
+      };
     } else {
       console.log(`[Branch Detection] GitHub API failed with status ${response.status}`);
+      return { 
+        branch: "main", 
+        accessible: false, 
+        error: `GitHub returned ${response.status}` 
+      };
     }
   } catch (error) {
     console.error("[Branch Detection] Error fetching from GitHub:", error);
+    return { 
+      branch: "main", 
+      accessible: false, 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    };
   }
-  
-  // Fallback to common branch names
-  console.log("[Branch Detection] Falling back to 'main'");
-  return "main";
 }
 
 /**
@@ -287,7 +302,70 @@ export const executeLiveDeployment = internalAction({
       const serviceName = project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-').substring(0, 40);
       
       // Detect default branch from GitHub
-      const defaultBranch = await detectDefaultBranch(gitRepoUrl);
+      const branchResult = await detectDefaultBranch(gitRepoUrl);
+      
+      // Check if repository is accessible
+      if (!branchResult.accessible) {
+        await ctx.runMutation(internal.deployments.updateStatus, {
+          deploymentId: args.deploymentId,
+          status: "failed",
+          log: `❌ Cannot access GitHub repository: ${branchResult.error}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔍 Repository URL: ${gitRepoUrl}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `❌ Error: ${branchResult.error}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 Possible causes:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   • Repository doesn't exist or was deleted`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   • Repository is private and not authorized`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   • Repository URL is incorrect`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Solutions:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   1. Verify the repository URL in project settings`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   2. If private: Go to Render dashboard → Connect GitHub → Authorize repository`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   3. Ensure repository exists at: ${gitRepoUrl}`,
+        });
+        
+        return;
+      }
+      
+      const defaultBranch = branchResult.branch;
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
