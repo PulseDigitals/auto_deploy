@@ -465,12 +465,12 @@ export const executeLiveDeployment = internalAction({
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Build: npm run build:frontend`,
+        message: `   Build: ${deploymentPlan.buildCommand}`,
       });
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Publish: client/dist`,
+        message: `   Publish: ${deploymentPlan.rootDir ? `${deploymentPlan.rootDir}/${deploymentPlan.publishDir}` : deploymentPlan.publishDir}`,
       });
       
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -507,9 +507,14 @@ export const executeLiveDeployment = internalAction({
           message: `📝 Please add the following file to your repository:`,
         });
         
+        // Determine correct path based on monorepo structure
+        const redirectsPath = deploymentPlan.rootDir 
+          ? `${deploymentPlan.rootDir}/public/_redirects`
+          : `public/_redirects`;
+        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `   Location: client/public/_redirects`,
+          message: `   Location: ${redirectsPath}`,
         });
         
         await ctx.runMutation(internal.deployments.appendLog, {
@@ -529,13 +534,13 @@ export const executeLiveDeployment = internalAction({
         name: serviceName,
         type: "static_site",
         runtime: "node",
-        buildCommand: "npm install && npm run build:frontend", // Use the root package.json script
+        buildCommand: deploymentPlan.buildCommand,
         region: "oregon",
         autoDeploy: true,
         repo: gitRepoUrl,
         branch: defaultBranch,
-        rootDirectory: undefined, // Don't set root - build from repo root
-        publishPath: "client/dist", // Output is at client/dist from root
+        rootDirectory: deploymentPlan.rootDir, // Only set for monorepos
+        publishPath: deploymentPlan.publishDir, // Use plan's publishDir
         // Note: 'routes' field is not supported by Render's REST API for static sites
         // Must use _redirects file in repository instead
       };
