@@ -588,8 +588,19 @@ export const executeLiveDeployment = internalAction({
         },
       ];
       
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // AUTHENTICATION CONFIGURATION
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // 
+      // Configure Hercules Auth for production deployment.
+      // Uses wildcard redirect URI pattern (*.onrender.com) for automatic
+      // authentication across all deployments to Render.
+      //
+      // One-time setup required: Add https://*.onrender.com/auth/callback
+      // to your Hercules Auth allowed redirect URIs.
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
       // Inject auth environment variables for Hercules Auth
-      // These enable OIDC authentication to work in production
       // Note: Backend uses HERCULES_* (not VITE_*), but we send to Render as VITE_*
       const authAuthority = process.env.HERCULES_OIDC_AUTHORITY || "https://hercules.app";
       const authClientId = process.env.HERCULES_OIDC_CLIENT_ID;
@@ -606,7 +617,32 @@ export const executeLiveDeployment = internalAction({
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `✅ Auth configured: ${authAuthority}`,
+          message: `✅ Auth configured for: ${authAuthority}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 IMPORTANT: To enable sign-in on production`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   1. Go to Hercules Auth settings (one-time setup)`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   2. Add wildcard redirect URI: https://*.onrender.com/auth/callback`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   3. This enables ALL Render deployments automatically!`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 You only need to do this ONCE for Render`,
         });
       }
       
