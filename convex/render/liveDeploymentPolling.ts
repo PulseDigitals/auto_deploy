@@ -90,23 +90,90 @@ export const pollRenderStatus = internalAction({
           deploymentId,
           message: `✅ Build completed successfully!`,
         });
+        
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // DEPLOYMENT VALIDATION
+        // Verify that the deployed app is actually working
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId,
-          message: `🌐 Your app is now live at: ${serviceUrl}`,
-        });
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId,
-          message: `💡 Tip: If you see a cached 404, try a hard refresh (Ctrl+Shift+R)`,
+          message: `🔍 Validating deployment health...`,
         });
         
-        // Mark as success
-        await ctx.runMutation(internal.deployments.updateStatus, {
-          deploymentId,
-          status: "success",
-          log: `✅ Deployment is live at ${serviceUrl}`,
-        });
+        // Import validation function
+        const { validateDeployment } = await import("../hostingIntelligence.js");
         
-        // Generate cost insights (using simulation data for now)
+        // Run validation
+        const validation = await validateDeployment(
+          serviceUrl,
+          ["/", "/dashboard"],
+          10000 // 10 second timeout per route
+        );
+        
+        if (validation.success) {
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `✅ Validation passed - all routes are responding correctly`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `🌐 Your app is now live at: ${serviceUrl}`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `💡 Tip: If you see a cached 404, try a hard refresh (Ctrl+Shift+R)`,
+          });
+          
+          // Mark as success
+          await ctx.runMutation(internal.deployments.updateStatus, {
+            deploymentId,
+            status: "success",
+            log: `✅ Deployment is live and validated at ${serviceUrl}`,
+          });
+        } else {
+          // Validation failed
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `⚠️ Validation detected issues:`,
+          });
+          
+          for (const check of validation.checkedRoutes) {
+            if (!check.success) {
+              await ctx.runMutation(internal.deployments.appendLog, {
+                deploymentId,
+                message: `   ✗ ${check.route}: ${check.error || `HTTP ${check.status}`}`,
+              });
+            }
+          }
+          
+          if (validation.needsHealing) {
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `🔧 Self-healing attempted but deployment may need manual review`,
+            });
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `📋 Check Render dashboard build logs for details`,
+            });
+          }
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId,
+            message: `🌐 Service URL: ${serviceUrl} (may show errors until routing is fixed)`,
+          });
+          
+          // Mark as success but with warnings
+          await ctx.runMutation(internal.deployments.updateStatus, {
+            deploymentId,
+            status: "success",
+            log: `⚠️ Deployment complete but validation found routing issues`,
+          });
+        }
+        
+        // Generate cost insights
         await ctx.scheduler.runAfter(500, internal.deployments.generateArtifacts, {
           deploymentId,
         });

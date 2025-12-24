@@ -294,78 +294,101 @@ export const executeLiveDeployment = internalAction({
         message: `🌿 Detected branch: ${defaultBranch}`,
       });
       
-      // Detect monorepo structure
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // HOSTING INTELLIGENCE MODULE
+      // Automatically analyze codebase and generate deployment plan
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `🔍 Analyzing repository structure...`,
+        message: `🧠 Analyzing codebase with Hosting Intelligence...`,
       });
       
-      const monorepoConfig = await detectMonorepoStructure(gitRepoUrl, defaultBranch);
+      // Import hosting intelligence
+      const { analyzeGitHubRepo } = await import("./codebaseAnalyzer.js");
+      const {
+        analyzeCodebase,
+        generateDeploymentPlan,
+      } = await import("../hostingIntelligence.js");
       
-      if (monorepoConfig.isMonorepo) {
+      // Fetch and analyze repository
+      const analysis = await analyzeGitHubRepo(gitRepoUrl, defaultBranch);
+      
+      if (analysis.error) {
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `📦 Monorepo detected! Frontend in: ${monorepoConfig.rootDirectory}`,
+          message: `⚠️ Could not analyze repository: ${analysis.error}`,
         });
-      } else {
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `📁 Standard repository structure detected`,
+          message: `📋 Using standard configuration as fallback`,
         });
       }
       
-      const publishPath = monorepoConfig.publishPath || "dist";
-      const baseBuildCommand = monorepoConfig.buildCommand || "npm install && npm run build";
+      // Generate codebase fingerprint
+      const fingerprint = analyzeCodebase(analysis.files, analysis.packageJson);
       
-      // Build-Time Injection: Automatically add _redirects for SPA routing using Node.js
-      // This is more robust than shell echo commands and works across all environments
-      const redirectsPath = monorepoConfig.rootDirectory 
-        ? `${monorepoConfig.rootDirectory}/${publishPath}/_redirects`
-        : `${publishPath}/_redirects`;
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `✅ Detected: ${fingerprint.framework} ${fingerprint.hasMonorepo ? "(monorepo)" : ""}`,
+      });
       
-      // Use Node.js to create the file (more reliable than echo)
-      const nodeScript = `node -e "const fs=require('fs');const path=require('path');const dir=path.dirname('${redirectsPath}');if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true});}fs.writeFileSync('${redirectsPath}','/*    /index.html   200\\\\n');console.log('✓ _redirects created at ${redirectsPath}');"`;
+      if (fingerprint.routerMode === "browser") {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔄 SPA routing detected - automatic configuration will be applied`,
+        });
+      }
       
-      const buildCommand = `${baseBuildCommand} && ${nodeScript}`;
+      // Generate deployment plan
+      const deploymentPlan = generateDeploymentPlan(fingerprint, "render");
+      
+      await ctx.runMutation(internal.deployments.appendLog, {
+        deploymentId: args.deploymentId,
+        message: `📋 Deployment Plan: ${deploymentPlan.explanation}`,
+      });
+      
+      // Log technical notes
+      for (const note of deploymentPlan.technicalNotes) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   ✓ ${note}`,
+        });
+      }
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `⚙️ Configuration:`,
       });
       
-      if (monorepoConfig.rootDirectory) {
+      if (deploymentPlan.rootDir) {
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `   Root: ${monorepoConfig.rootDirectory}`,
+          message: `   Root: ${deploymentPlan.rootDir}`,
         });
       }
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Build: ${baseBuildCommand}`,
+        message: `   Build: ${deploymentPlan.buildCommand}`,
       });
       
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `   Publish: ${publishPath}`,
-      });
-      
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `   🔧 Auto-injecting SPA routing (Node.js) at: ${redirectsPath}`,
+        message: `   Publish: ${deploymentPlan.publishDir}`,
       });
       
       const serviceInput: CreateServiceInput = {
         name: serviceName,
         type: "static_site",
         runtime: "node",
-        buildCommand,
+        buildCommand: deploymentPlan.buildCommand,
         region: "oregon",
         autoDeploy: true,
         repo: gitRepoUrl,
         branch: defaultBranch,
-        rootDirectory: monorepoConfig.rootDirectory,
-        publishPath,
+        rootDirectory: deploymentPlan.rootDir,
+        publishPath: deploymentPlan.publishDir,
       };
 
       // Create service on Render
