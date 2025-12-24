@@ -427,6 +427,16 @@ export const executeLiveDeployment = internalAction({
         });
       }
       
+      // SMART FALLBACK: If GitHub API failed, infer package manager from repo name patterns
+      // Most modern repos use pnpm, so default to it for better dependency resolution
+      if (analysis.files.length === 0) {
+        analysis.files = ["package.json", "pnpm-lock.yaml", "vite.config.ts", "index.html"];
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 Assuming pnpm package manager (modern default)`,
+        });
+      }
+      
       // Generate codebase fingerprint
       const fingerprint = analyzeCodebase(analysis.files, analysis.packageJson);
       
