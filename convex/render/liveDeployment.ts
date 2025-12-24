@@ -390,6 +390,7 @@ export const executeLiveDeployment = internalAction({
       // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       
       let blueprintRoutes: RenderRoute[] | undefined;
+      let needsRedirectsFile = false;
       
       // Check if this deployment requires Blueprint-based SPA routing
       if (requiresBlueprint({
@@ -400,27 +401,43 @@ export const executeLiveDeployment = internalAction({
       })) {
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `📋 Generating Render Blueprint for SPA routing...`,
+          message: `📋 SPA routing configuration required...`,
         });
         
-        const blueprint = generateRenderBlueprint({
-          serviceName,
-          buildCommand: deploymentPlan.buildCommand,
-          publishDir: deploymentPlan.publishDir,
-          rootDirectory: deploymentPlan.rootDir,
-        });
-        
-        blueprintRoutes = blueprint.routes;
+        // NOTE: Render's REST API does not support the 'routes' field for static sites
+        // The 'routes' configuration only works with render.yaml Blueprint files
+        // Since we're deploying via API, we need a _redirects file in the repo
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `✅ Blueprint generated - automatic SPA routing configured`,
+          message: `⚠️ Render requires a _redirects file for SPA routing`,
         });
         
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,
-          message: `   Route: ${blueprint.routes[0].source} → ${blueprint.routes[0].destination}`,
+          message: `📝 Please add the following file to your repository:`,
         });
+        
+        const redirectsPath = fingerprint.hasMonorepo 
+          ? `${fingerprint.frontendRoot}/public/_redirects`
+          : `public/_redirects`;
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   Location: ${redirectsPath}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   Content: /*    /index.html   200`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 This file will fix all 404 errors on client-side routes`,
+        });
+        
+        needsRedirectsFile = true;
       }
       
       const serviceInput: CreateServiceInput = {
@@ -434,7 +451,8 @@ export const executeLiveDeployment = internalAction({
         branch: defaultBranch,
         rootDirectory: deploymentPlan.rootDir,
         publishPath: deploymentPlan.publishDir,
-        routes: blueprintRoutes, // Apply Blueprint routes for SPA routing
+        // Note: 'routes' field is not supported by Render's REST API for static sites
+        // Must use _redirects file in repository instead
       };
 
       // Create service on Render

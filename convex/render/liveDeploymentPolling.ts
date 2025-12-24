@@ -152,11 +152,22 @@ export const pollRenderStatus = internalAction({
           if (validation.needsHealing) {
             await ctx.runMutation(internal.deployments.appendLog, {
               deploymentId,
-              message: `🔧 Self-healing attempted but deployment may need manual review`,
+              message: `🔧 Solution: Add a _redirects file to fix SPA routing`,
             });
+            
             await ctx.runMutation(internal.deployments.appendLog, {
               deploymentId,
-              message: `📋 Check Render dashboard build logs for details`,
+              message: `📝 Create file: client/public/_redirects`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `   Content: /*    /index.html   200`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId,
+              message: `💡 Commit and push - Render will auto-redeploy`,
             });
           }
           
