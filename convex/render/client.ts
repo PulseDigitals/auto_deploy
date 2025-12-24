@@ -39,6 +39,15 @@ export interface RenderEnvVar {
 }
 
 /**
+ * Render Route Configuration
+ */
+export interface RenderRoute {
+  type: "rewrite" | "redirect";
+  source: string;
+  destination: string;
+}
+
+/**
  * Create Service Input
  */
 export interface CreateServiceInput {
@@ -52,6 +61,7 @@ export interface CreateServiceInput {
   buildCommand?: string;
   startCommand?: string;
   publishPath?: string; // Output directory (e.g., "dist", "build")
+  routes?: RenderRoute[]; // Route rewrites for SPA routing
   envVars?: RenderEnvVar[];
   autoDeploy?: boolean; // Auto-deploy on git push
 }
@@ -323,6 +333,11 @@ export class RenderClient {
       serviceDetails.buildCommand = input.buildCommand;
     }
     
+    // Add routes for SPA routing configuration
+    if (input.routes && input.routes.length > 0) {
+      serviceDetails.routes = input.routes;
+    }
+    
     payload.serviceDetails = serviceDetails;
 
     // Add environment variables if provided
@@ -426,6 +441,11 @@ export class RenderClient {
     // Add build command
     if (updates.buildCommand !== undefined) {
       serviceDetails.buildCommand = updates.buildCommand;
+    }
+    
+    // Add routes for SPA routing
+    if (updates.routes !== undefined) {
+      serviceDetails.routes = updates.routes;
     }
     
     const payload: Record<string, unknown> = {};

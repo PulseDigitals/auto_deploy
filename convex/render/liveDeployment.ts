@@ -11,7 +11,7 @@
 import { internalAction } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
 import { v } from "convex/values";
-import { RenderClient, type CreateServiceInput, type RenderEnvVar, type RenderService } from "./client.js";
+import { RenderClient, type CreateServiceInput, type RenderEnvVar, type RenderService, type RenderRoute } from "./client.js";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
@@ -311,6 +311,12 @@ export const executeLiveDeployment = internalAction({
         generateDeploymentPlan,
       } = await import("../hostingIntelligence.js");
       
+      // Import Blueprint generator
+      const {
+        generateRenderBlueprint,
+        requiresBlueprint,
+      } = await import("../renderBlueprint.js");
+      
       // Fetch and analyze repository
       const analysis = await analyzeGitHubRepo(gitRepoUrl, defaultBranch);
       
@@ -378,6 +384,45 @@ export const executeLiveDeployment = internalAction({
         message: `   Publish: ${deploymentPlan.publishDir}`,
       });
       
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // RENDER BLUEPRINT AUTO-GENERATION
+      // Generate Blueprint for SPA routing if needed
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
+      let blueprintRoutes: RenderRoute[] | undefined;
+      
+      // Check if this deployment requires Blueprint-based SPA routing
+      if (requiresBlueprint({
+        appType: deploymentPlan.appType,
+        framework: fingerprint.framework,
+        routerMode: fingerprint.routerMode,
+        needsSpaRewrite: fingerprint.needsSpaRewrite,
+      })) {
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 Generating Render Blueprint for SPA routing...`,
+        });
+        
+        const blueprint = generateRenderBlueprint({
+          serviceName,
+          buildCommand: deploymentPlan.buildCommand,
+          publishDir: deploymentPlan.publishDir,
+          rootDirectory: deploymentPlan.rootDir,
+        });
+        
+        blueprintRoutes = blueprint.routes;
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `✅ Blueprint generated - automatic SPA routing configured`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   Route: ${blueprint.routes[0].source} → ${blueprint.routes[0].destination}`,
+        });
+      }
+      
       const serviceInput: CreateServiceInput = {
         name: serviceName,
         type: "static_site",
@@ -389,6 +434,7 @@ export const executeLiveDeployment = internalAction({
         branch: defaultBranch,
         rootDirectory: deploymentPlan.rootDir,
         publishPath: deploymentPlan.publishDir,
+        routes: blueprintRoutes, // Apply Blueprint routes for SPA routing
       };
 
       // Create service on Render

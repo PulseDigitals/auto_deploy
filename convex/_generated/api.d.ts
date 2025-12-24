@@ -39,6 +39,7 @@ import type * as render_deploy from "../render/deploy.js";
 import type * as render_liveDeployment from "../render/liveDeployment.js";
 import type * as render_liveDeploymentPolling from "../render/liveDeploymentPolling.js";
 import type * as render_validateApiKey from "../render/validateApiKey.js";
+import type * as renderBlueprint from "../renderBlueprint.js";
 import type * as renderConnections from "../renderConnections.js";
 import type * as userManagement from "../userManagement.js";
 import type * as users from "../users.js";
@@ -95,6 +96,7 @@ declare const fullApi: ApiFromModules<{
   "render/liveDeployment": typeof render_liveDeployment;
   "render/liveDeploymentPolling": typeof render_liveDeploymentPolling;
   "render/validateApiKey": typeof render_validateApiKey;
+  renderBlueprint: typeof renderBlueprint;
   renderConnections: typeof renderConnections;
   userManagement: typeof userManagement;
   users: typeof users;
