@@ -305,64 +305,82 @@ export const executeLiveDeployment = internalAction({
       const branchResult = await detectDefaultBranch(gitRepoUrl);
       
       // Check if repository is accessible
+      // Note: 403 errors can be rate limiting, not necessarily private repos
       if (!branchResult.accessible) {
-        await ctx.runMutation(internal.deployments.updateStatus, {
-          deploymentId: args.deploymentId,
-          status: "failed",
-          log: `❌ Cannot access GitHub repository: ${branchResult.error}`,
-        });
+        const is403 = branchResult.error?.includes("403");
         
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `🔍 Repository URL: ${gitRepoUrl}`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `❌ Error: ${branchResult.error}`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `📋 Possible causes:`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   • Repository doesn't exist or was deleted`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   • Repository is private and not authorized`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   • Repository URL is incorrect`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `💡 Solutions:`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   1. Verify the repository URL in project settings`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   2. If private: Go to Render dashboard → Connect GitHub → Authorize repository`,
-        });
-        
-        await ctx.runMutation(internal.deployments.appendLog, {
-          deploymentId: args.deploymentId,
-          message: `   3. Ensure repository exists at: ${gitRepoUrl}`,
-        });
-        
-        return;
+        if (is403) {
+          // 403 might be rate limiting, not private repo
+          // Continue with deployment using default branch
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `⚠️ GitHub API rate limited - using default branch: main`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `💡 If repository uses 'master' branch, deployment may fail`,
+          });
+        } else {
+          // 404 or other error - likely doesn't exist
+          await ctx.runMutation(internal.deployments.updateStatus, {
+            deploymentId: args.deploymentId,
+            status: "failed",
+            log: `❌ Cannot access GitHub repository: ${branchResult.error}`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `🔍 Repository URL: ${gitRepoUrl}`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `❌ Error: ${branchResult.error}`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `📋 Possible causes:`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   • Repository doesn't exist or was deleted`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   • Repository is private and not authorized`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   • Repository URL is incorrect`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `💡 Solutions:`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   1. Verify the repository URL in project settings`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   2. If private: Go to Render dashboard → Connect GitHub → Authorize repository`,
+          });
+          
+          await ctx.runMutation(internal.deployments.appendLog, {
+            deploymentId: args.deploymentId,
+            message: `   3. Ensure repository exists at: ${gitRepoUrl}`,
+          });
+          
+          return;
+        }
       }
       
       const defaultBranch = branchResult.branch;
