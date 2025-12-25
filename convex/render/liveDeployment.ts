@@ -234,6 +234,141 @@ export const executeLiveDeployment = internalAction({
     const client: RenderClient = new RenderClient(connection.apiKey);
 
     try {
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // PHASE R3: AUTH VERIFICATION GUARDRAIL
+      // Block deployment if auth is not verified
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
+      const authStatus = project.renderAuthStatus;
+      
+      // If we have a service but auth is not verified, block deployment
+      if (project.renderServiceId && authStatus !== "verified") {
+        const redirectUri = project.renderRedirectUri || `${project.renderServiceUrl}/auth/callback`;
+        
+        await ctx.runMutation(internal.deployments.updateStatus, {
+          deploymentId: args.deploymentId,
+          status: "failed",
+          log: `🔒 Auth Setup Required (one-time)`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔒 RENDER AUTH SETUP REQUIRED (ONE-TIME)`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `✅ Your Render service is ready at:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   ${project.renderServiceUrl}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `❌ However, sign-in will NOT work until you complete this one-time setup:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `📋 COPY THIS REDIRECT URI:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   ${redirectUri}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `➡️ ADD IT TO HERCULES AUTH SETTINGS:`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   1. Go to More → Auth Settings in Hercules dashboard`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   2. Find "Redirect URIs" section`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   3. Add the redirect URI above`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   4. Click Save`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔁 THEN CLICK "VERIFY" IN PROJECT SETTINGS`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   Once verified, you can deploy again and auth will work!`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: ``,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💡 You only need to do this ONCE per project.`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `   After setup, all future deployments will work automatically.`,
+        });
+        
+        return;
+      }
+      
       // Update status to running
       await ctx.runMutation(internal.deployments.updateStatus, {
         deploymentId: args.deploymentId,
@@ -243,7 +378,7 @@ export const executeLiveDeployment = internalAction({
 
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
-        message: `📦 Creating Render service for: ${project.name}`,
+        message: `📦 Configuring Render service for: ${project.name}`,
       });
 
       // CRITICAL: Check deployment source - Render only supports GitHub pathway
@@ -667,88 +802,137 @@ export const executeLiveDeployment = internalAction({
         // Must use _redirects file in repository instead
       };
 
-      // Create service on Render
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      // PHASE R1: PERSISTENT SERVICE ARCHITECTURE
+      // Never delete services - reuse existing service ID for stable URLs
+      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+      
       await ctx.runMutation(internal.deployments.appendLog, {
         deploymentId: args.deploymentId,
         message: `⚙️ Configuring service: ${serviceName}`,
       });
 
-      // Check if service already exists - DELETE AND RECREATE for clean state
       let service: RenderService | undefined;
+      let deployId: string | undefined;
       
-      try {
-        const existingServices = await client.listServices();
-        console.log(`[Render] Found ${existingServices.length} existing services`);
+      // RULE 1: Check if project has a stored renderServiceId
+      if (project.renderServiceId) {
+        console.log(`[Render] Project has existing service ID: ${project.renderServiceId}`);
         
-        const existingService = existingServices.find(s => s.name === serviceName);
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `♻️ Reusing existing service: ${project.renderServiceId}`,
+        });
         
-        if (existingService) {
-          console.log("[Render] Found existing service - will delete and recreate for clean state");
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔗 Service URL: ${project.renderServiceUrl}`,
+        });
+        
+        try {
+          // Verify service still exists on Render
+          const existingServices = await client.listServices();
+          const existingService = existingServices.find(s => s.id === project.renderServiceId);
           
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `🗑️ Found existing service: ${existingService.id}`,
-          });
-          
-          await ctx.runMutation(internal.deployments.appendLog, {
-            deploymentId: args.deploymentId,
-            message: `🔥 Deleting existing service to ensure clean configuration...`,
-          });
-          
-          try {
-            await client.deleteService(existingService.id);
-            console.log(`[Render] Successfully deleted service: ${existingService.id}`);
+          if (existingService) {
+            service = existingService;
             
             await ctx.runMutation(internal.deployments.appendLog, {
               deploymentId: args.deploymentId,
-              message: `✅ Old service deleted successfully`,
+              message: `✅ Service verified - triggering new deployment...`,
             });
             
-            // Wait a moment for Render to process the deletion
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Trigger a new deployment on the existing service
+            const deploy = await client.triggerDeploy(service.id);
+            deployId = deploy.id;
             
-          } catch (deleteError) {
-            console.error("[Render] Error deleting service:", deleteError);
+          } else {
+            // Service was deleted externally - need to recreate
+            console.log("[Render] Stored service ID not found on Render - will recreate");
+            
             await ctx.runMutation(internal.deployments.appendLog, {
               deploymentId: args.deploymentId,
-              message: `⚠️ Could not delete old service, will try to create anyway`,
+              message: `⚠️ Stored service not found on Render (may have been deleted)`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId: args.deploymentId,
+              message: `🆕 Creating new service...`,
+            });
+            
+            // Create new service
+            const createResult = await client.createService(serviceInput);
+            service = createResult.service;
+            deployId = createResult.deployId;
+            
+            // Store new service ID
+            await ctx.runMutation(internal.projects.storeRenderServiceInfo, {
+              projectId: project._id,
+              renderServiceId: service.id,
+              renderServiceUrl: service.serviceDetails.url || `https://${service.name}.onrender.com`,
+            });
+            
+            await ctx.runMutation(internal.deployments.appendLog, {
+              deploymentId: args.deploymentId,
+              message: `✅ New service created: ${service.id}`,
             });
           }
+          
+        } catch (error) {
+          console.error("[Render] Error reusing service:", error);
+          throw error;
         }
-      } catch (error) {
-        console.log("[Render] Could not list services:", error);
+        
+      } else {
+        // RULE 2: No stored serviceId - create service for the first time
+        console.log("[Render] No existing service ID - creating first service");
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🆕 Creating Render service (first deployment)...`,
+        });
+        
+        const createResult = await client.createService(serviceInput);
+        service = createResult.service;
+        deployId = createResult.deployId;
+        
+        console.log("[Render] Service created:", service.id);
+        
+        // CRITICAL: Store service ID permanently - never delete it
+        await ctx.runMutation(internal.projects.storeRenderServiceInfo, {
+          projectId: project._id,
+          renderServiceId: service.id,
+          renderServiceUrl: service.serviceDetails.url || `https://${service.name}.onrender.com`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `✅ Service created: ${service.id}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `🔗 Service URL: ${service.serviceDetails.url || `https://${service.name}.onrender.com`}`,
+        });
+        
+        await ctx.runMutation(internal.deployments.appendLog, {
+          deploymentId: args.deploymentId,
+          message: `💾 Service ID saved - future deployments will reuse this service`,
+        });
       }
-      
-      // Create fresh new service with correct configuration
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `🆕 Creating fresh service with correct configuration...`,
-      });
-      
-      const createResult = await client.createService(serviceInput);
-      service = createResult.service;
-      let deployId = createResult.deployId;
       
       console.log("[Render] Service creation response:", JSON.stringify(service, null, 2));
       console.log("[Render] Service ID:", service.id);
-      console.log("[Render] Auto-created deploy ID:", deployId);
+      if (deployId) {
+        console.log("[Render] Auto-created deploy ID:", deployId);
+      }
 
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `✅ Service created with ID: ${service.id}`,
-      });
-      
-      await ctx.runMutation(internal.deployments.appendLog, {
-        deploymentId: args.deploymentId,
-        message: `🚀 Initial deployment with environment variables configured`,
-      });
-      
       // Validate service ID
       if (!service || !service.id) {
         throw new Error("Failed to get valid service ID from Render");
       }
 
-      // For static sites with a repo, Render automatically creates a deployment
+      // For static sites with a repo, Render automatically creates a deployment or we manually triggered one
       if (deployId) {
         await ctx.runMutation(internal.deployments.appendLog, {
           deploymentId: args.deploymentId,

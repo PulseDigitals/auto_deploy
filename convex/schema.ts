@@ -61,6 +61,18 @@ export default defineSchema({
     lastReleaseDetectedAt: v.optional(v.number()), // timestamp of last detected release
     lastDetectedReleaseVersion: v.optional(v.string()), // last detected release version
     releaseNotes: v.optional(v.string()), // short text, optional
+    // Render-specific persistence fields (PHASE R1)
+    renderServiceId: v.optional(v.string()), // Persistent Render service ID
+    renderServiceUrl: v.optional(v.string()), // Stable service URL (e.g. https://my-app.onrender.com)
+    renderAuthCallbackPath: v.optional(v.string()), // Auth callback path (default: /auth/callback)
+    renderRedirectUri: v.optional(v.string()), // Computed redirect URI for auth registration
+    renderAuthStatus: v.optional(v.union(
+      v.literal("unknown"),
+      v.literal("needs_setup"),
+      v.literal("verified"),
+      v.literal("failed")
+    )), // Auth verification status
+    renderAuthLastCheckedAt: v.optional(v.number()), // Last auth verification timestamp
   }).index("by_isSystemProject", ["isSystemProject"]),
 
   deployments: defineTable({
@@ -176,6 +188,12 @@ export default defineSchema({
     ),
     platformVersion: v.optional(v.string()), // version deployed during this run
     isSelfDeployment: v.optional(v.boolean()), // true if this is a self-deployment
+    // Render auth gate info (PHASE R3)
+    providerAuthGate: v.optional(v.object({
+      status: v.union(v.literal("blocked"), v.literal("ok")),
+      reason: v.optional(v.string()),
+      redirectUri: v.optional(v.string()),
+    })),
   }).index("by_projectId", ["projectId"]),
 
   alertHistory: defineTable({

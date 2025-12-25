@@ -14,6 +14,7 @@ import DeploymentLogModal from "@/components/DeploymentLogModal.tsx";
 import ArtifactExplorer from "@/components/ArtifactExplorer.tsx";
 import UpgradeModal from "@/components/UpgradeModal.tsx";
 import DeployModal from "@/components/DeployModal.tsx";
+import RenderAuthSetup from "@/components/RenderAuthSetup.tsx";
 import type { ProviderId } from "@/config/providers.ts";
 import { getProviderConfig } from "@/config/providers.ts";
 import { hasAccess, getRequiredPlan, type SubscriptionPlan } from "@/config/plans.ts";
@@ -304,6 +305,9 @@ export default function ProjectDetail() {
             </Button>
           </CardContent>
         </Card>
+
+        {/* Render Auth Setup Assistant */}
+        <RenderAuthSetup projectId={project._id} />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">

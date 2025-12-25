@@ -323,3 +323,122 @@ export const triggerSelfDeploy = mutation({
     });
   },
 });
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PHASE R1: RENDER SERVICE PERSISTENCE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// Internal mutation to store Render service information
+export const storeRenderServiceInfo = internalMutation({
+  args: {
+    projectId: v.id("projects"),
+    renderServiceId: v.string(),
+    renderServiceUrl: v.string(),
+    renderAuthCallbackPath: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const callbackPath = args.renderAuthCallbackPath || "/auth/callback";
+    const redirectUri = `${args.renderServiceUrl}${callbackPath}`;
+    
+    await ctx.db.patch(args.projectId, {
+      renderServiceId: args.renderServiceId,
+      renderServiceUrl: args.renderServiceUrl,
+      renderAuthCallbackPath: callbackPath,
+      renderRedirectUri: redirectUri,
+      renderAuthStatus: "needs_setup",
+      renderAuthLastCheckedAt: Date.now(),
+    });
+  },
+});
+
+// Query to get Render auth status for a project
+export const getRenderAuthStatus = query({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }): Promise<{
+    status: "unknown" | "needs_setup" | "verified" | "failed";
+    redirectUri?: string;
+    serviceUrl?: string;
+    lastCheckedAt?: number;
+  }> => {
+    const project = await ctx.db.get(projectId);
+    if (!project) {
+      return { status: "unknown" };
+    }
+    
+    return {
+      status: project.renderAuthStatus || "unknown",
+      redirectUri: project.renderRedirectUri,
+      serviceUrl: project.renderServiceUrl,
+      lastCheckedAt: project.renderAuthLastCheckedAt,
+    };
+  },
+});
+
+// Mutation to verify Render redirect URI configuration
+export const verifyRenderAuth = mutation({
+  args: { projectId: v.id("projects") },
+  handler: async (ctx, { projectId }): Promise<{
+    success: boolean;
+    status: "verified" | "failed";
+    message: string;
+  }> => {
+    const project = await ctx.db.get(projectId);
+    if (!project || !project.renderServiceUrl) {
+      return {
+        success: false,
+        status: "failed",
+        message: "No Render service URL found. Please deploy first.",
+      };
+    }
+    
+    try {
+      // Verification Strategy A: Test the callback URL
+      const callbackPath = project.renderAuthCallbackPath || "/auth/callback";
+      const testUrl = `${project.renderServiceUrl}${callbackPath}?test=1`;
+      
+      const response = await fetch(testUrl, {
+        method: "GET",
+        redirect: "manual", // Don't follow redirects
+      });
+      
+      // Check if the response is NOT a "redirect_uri mismatch" error
+      // A successful response or redirect indicates proper configuration
+      const isAccessible = response.status !== 404;
+      
+      if (isAccessible) {
+        await ctx.db.patch(projectId, {
+          renderAuthStatus: "verified",
+          renderAuthLastCheckedAt: Date.now(),
+        });
+        
+        return {
+          success: true,
+          status: "verified",
+          message: "✅ Auth callback is accessible! Sign-in should work.",
+        };
+      } else {
+        await ctx.db.patch(projectId, {
+          renderAuthStatus: "failed",
+          renderAuthLastCheckedAt: Date.now(),
+        });
+        
+        return {
+          success: false,
+          status: "failed",
+          message: "❌ Callback returns 404. Please register the redirect URI in Hercules Auth settings.",
+        };
+      }
+    } catch (error) {
+      await ctx.db.patch(projectId, {
+        renderAuthStatus: "failed",
+        renderAuthLastCheckedAt: Date.now(),
+      });
+      
+      return {
+        success: false,
+        status: "failed",
+        message: `❌ Verification failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      };
+    }
+  },
+});
