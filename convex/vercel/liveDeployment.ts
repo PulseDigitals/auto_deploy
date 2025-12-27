@@ -4,6 +4,7 @@ import { internalAction } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
 import { v } from "convex/values";
 import type { Id } from "../_generated/dataModel.d.ts";
+import { api } from "../_generated/api";
 
 /**
  * Orchestrates a live Vercel deployment
@@ -63,7 +64,7 @@ export const executeLiveDeployment = internalAction({
     }
 
     // Get Vercel OAuth token from vercelConnections table using deployment's userId
-    const vercelConnection = await ctx.runMutation(internal.vercelConnections.getAccessTokenForUser, {
+    const vercelConnection = await ctx.runAction((api as any).vercelActions.getAccessTokenForUser, {
       userId: deployment.userId,
     });
 

@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input.tsx";
 import { Label } from "@/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select.tsx";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert.tsx";
-import { getOAuthStartUrl } from "@/lib/convex-http.ts";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 
 interface VercelTeam {
@@ -56,7 +55,7 @@ export default function Settings() {
   const revalidateRender = useAction(api.render.validateApiKey.revalidateRenderConnection);
   
   // Mutations
-  const generateOAuthState = useMutation(api.oauth.vercel.generateOAuthState);
+  const startOAuth = useAction(api.oauth.startAuth.startAuth);
   const setInstalledTeam = useMutation(api.vercelConnections.setInstalledTeam);
   const disconnectVercel = useMutation(api.vercelConnections.disconnectVercel);
   const disconnectRender = useMutation(api.renderConnections.disconnectRender);
@@ -121,17 +120,20 @@ export default function Settings() {
   const handleConnectVercel = async () => {
     setIsConnecting(true);
     try {
-      // Step 1: Generate state token with user context
-      const { state } = await generateOAuthState({});
-      
-      // Step 2: Build OAuth start URL with state
-      const baseUrl = getOAuthStartUrl("vercel");
-      const oauthUrl = `${baseUrl}?state=${encodeURIComponent(state)}`;
-      
-      console.log("Redirecting to Vercel OAuth:", oauthUrl);
-      
-      // Step 3: Redirect to OAuth flow
-      window.location.href = oauthUrl;
+      const deploymentUrl = window.location.origin;
+      const targetCallback = `${deploymentUrl}/dashboard/settings`;
+      const result = await startOAuth({
+        providerId: "vercel",
+        deploymentId: `vercel-connect-${Date.now()}`,
+        deploymentUrl,
+        targetCallback,
+      });
+
+      if (!result?.authUrl) {
+        throw new Error("Failed to start OAuth flow");
+      }
+
+      window.location.href = result.authUrl;
     } catch (error) {
       console.error("Failed to start OAuth flow:", error);
       toast.error("Failed to start OAuth flow. Please try again.");
@@ -709,13 +711,6 @@ export default function Settings() {
                     <Label className="text-xs text-muted-foreground">Render Status</Label>
                     <p className="mt-1">
                       {renderConnection?.isValid ? "Connected" : renderConnection ? "Invalid" : "Not Connected"}
-                    </p>
-                  </div>
-
-                  <div>
-                    <Label className="text-xs text-muted-foreground">OAuth Start URL</Label>
-                    <p className="mt-1 font-mono text-xs break-all">
-                      {getOAuthStartUrl("vercel")}
                     </p>
                   </div>
 

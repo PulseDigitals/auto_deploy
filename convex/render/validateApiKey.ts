@@ -9,10 +9,9 @@
  */
 
 import { action } from "../_generated/server.js";
-import { internal } from "../_generated/api.js";
-import { v } from "convex/values";
+import { api, internal } from "../_generated/api.js";
+import { v, ConvexError } from "convex/values";
 import { RenderClient } from "./client.js";
-import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
 /**
@@ -65,7 +64,7 @@ export const connectRender = action({
     }
 
     // Store connection in database
-    await ctx.runMutation(internal.renderConnections.upsertRenderConnection, {
+    await ctx.runMutation(api.renderMutations.upsertRenderConnection, {
       userId: user._id,
       apiKey: args.apiKey, // TODO: Encrypt at rest in production
       accountName: validation.owner?.name,
@@ -114,9 +113,9 @@ export const revalidateRenderConnection = action({
 
     // Get existing connection
     const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null = 
-      await ctx.runMutation(internal.renderConnections.getApiKeyForAction, {
-        userId: user._id,
-      });
+    await ctx.runMutation(internal.renderMutations.getApiKeyForAction, {
+      userId: user._id,
+    });
 
     if (!connection) {
       throw new ConvexError({
@@ -131,7 +130,7 @@ export const revalidateRenderConnection = action({
 
     if (!validation.valid) {
       // Mark connection as invalid
-      await ctx.runMutation(internal.renderConnections.markConnectionInvalid, {
+      await ctx.runMutation(api.renderMutations.markConnectionInvalid, {
         userId: user._id,
       });
 
@@ -142,7 +141,7 @@ export const revalidateRenderConnection = action({
     }
 
     // Update connection with fresh validation
-    await ctx.runMutation(internal.renderConnections.upsertRenderConnection, {
+    await ctx.runMutation(api.renderMutations.upsertRenderConnection, {
       userId: user._id,
       apiKey: connection.apiKey,
       accountName: validation.owner?.name,
@@ -157,4 +156,3 @@ export const revalidateRenderConnection = action({
     };
   },
 });
-

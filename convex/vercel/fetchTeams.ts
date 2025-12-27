@@ -11,6 +11,7 @@
 
 import { action } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
+import { api } from "../_generated/api";
 import { ConvexError } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel.d.ts";
 
@@ -59,7 +60,7 @@ export const getAvailableTeams = action({
     }
 
     // Get Vercel connection
-    const connection: VercelConnectionData | null = await ctx.runMutation(internal.vercelConnections.getVercelConnectionForAction, {
+    const connection: VercelConnectionData | null = await ctx.runAction((api as any).vercelActions.getVercelConnectionForAction, {
       userId: user._id,
     });
 

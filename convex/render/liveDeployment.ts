@@ -217,7 +217,7 @@ export const executeLiveDeployment = internalAction({
 
     // Get Render connection
     const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null = 
-      await ctx.runMutation(internal.renderConnections.getApiKeyForAction, {
+      await ctx.runMutation(internal.renderMutations.getApiKeyForAction, {
         userId: deployment.userId,
       });
 

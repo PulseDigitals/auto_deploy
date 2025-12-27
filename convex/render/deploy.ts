@@ -80,10 +80,8 @@ export const deployService = action({
     }
 
     // Get Render connection
-    const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null = 
-      await ctx.runMutation(internal.renderConnections.getApiKeyForAction, {
-        userId: user._id,
-      });
+    const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null =
+      await ctx.runMutation(internal.renderMutations.getApiKeyForAction, { userId: user._id });
 
     if (!connection) {
       throw new ConvexError({
@@ -238,10 +236,8 @@ export const getServiceStatus = action({
     }
 
     // Get Render connection
-    const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null = 
-      await ctx.runMutation(internal.renderConnections.getApiKeyForAction, {
-        userId: user._id,
-      });
+    const connection: { apiKey: string; accountName?: string; accountEmail?: string } | null =
+      await ctx.runMutation(internal.renderMutations.getApiKeyForAction, { userId: user._id });
 
     if (!connection) {
       throw new ConvexError({

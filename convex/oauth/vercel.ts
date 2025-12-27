@@ -1,5 +1,6 @@
 import { httpAction } from "../_generated/server.js";
 import { internal } from "../_generated/api.js";
+import { api } from "../_generated/api.js";
 
 /**
  * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -565,7 +566,7 @@ export const persistConnection = internalMutation({
   handler: async (ctx, args) => {
     console.log("[persistConnection] Storing connection with teamId:", args.teamId);
     
-    await ctx.runMutation(internal.vercelConnections.upsertVercelConnection, {
+    await ctx.runMutation(api.vercelMutations.upsertVercelConnection, {
       userId: args.userId,
       accessToken: args.accessToken,
       vercelUserId: args.vercelUserId,

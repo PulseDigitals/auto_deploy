@@ -2,6 +2,7 @@
 
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
+import { api } from "../_generated/api";
 import { v } from "convex/values";
 
 /**
@@ -29,7 +30,7 @@ export const executeAutoDeployment = internalAction({
         throw new Error("Deployment has no associated user");
       }
 
-      const vercelConnection = await ctx.runMutation(internal.vercelConnections.getAccessTokenForUser, {
+      const vercelConnection = await ctx.runAction((api as any).vercelActions.getAccessTokenForUser, {
         userId: deployment.userId,
       });
 

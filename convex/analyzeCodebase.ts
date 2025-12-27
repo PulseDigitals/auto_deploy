@@ -1,9 +1,8 @@
 "use node";
 
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { action } from "./_generated/server";
 import { api } from "./_generated/api";
-import { ConvexError } from "convex/values";
 
 interface ManifestType {
   framework: string;
@@ -16,7 +15,7 @@ interface ManifestType {
   notes: string;
 }
 
-export const analyzeCodebase: ReturnType<typeof action> = action({
+export const analyzeCodebase = action({
   args: { projectId: v.id("projects") },
   handler: async (ctx, { projectId }): Promise<ManifestType> => {
     // Fetch project

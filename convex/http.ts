@@ -1,19 +1,12 @@
-import { httpRouter } from "convex/server";
-import { startVercelOAuth, handleVercelCallback } from "./oauth/vercel.js";
+import { httpRouter, type PublicHttpAction } from "convex/server";
+import { handleCentralCallback } from "./gateway.node";
 
 const http = httpRouter();
 
-// Vercel OAuth routes - Production endpoints
 http.route({
-  path: "/auth/vercel/start",
+  path: "/oauth/callback",
   method: "GET",
-  handler: startVercelOAuth,
-});
-
-http.route({
-  path: "/auth/vercel/callback",
-  method: "GET",
-  handler: handleVercelCallback,
+  handler: handleCentralCallback as unknown as PublicHttpAction,
 });
 
 export default http;
