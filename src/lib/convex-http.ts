@@ -1,37 +1,27 @@
 /**
  * Get the Convex HTTP Actions base URL
- * HTTP Actions are deployed on the Convex deployment domain
- * 
- * Local dev: http://localhost:3000
- * Production: https://<deployment>.convex.site (note: .site not .cloud)
- * 
- * For Hercules production apps, HTTP Actions may be routed through
- * the main app domain (e.g., https://auto-deploy.onhercules.app)
+ *
+ * Convex HTTP actions are served on the SAME domain
+ * as the Convex deployment (.convex.cloud)
  */
 export function getConvexHttpUrl(): string {
-  const convexUrl = import.meta.env.VITE_CONVEX_URL ?? "http://localhost:3000";
-  
-  // For local development, use the same URL
-  if (convexUrl.includes("localhost")) {
-    return convexUrl;
+  const convexUrl = import.meta.env.VITE_CONVEX_URL;
+
+  if (!convexUrl) {
+    throw new Error(
+      "VITE_CONVEX_URL is not defined. Check Vercel environment variables."
+    );
   }
-  
-  // For production, convert .convex.cloud to .convex.site
-  // HTTP Actions are served on .convex.site domain
-  if (convexUrl.includes(".convex.cloud")) {
-    return convexUrl.replace(".convex.cloud", ".convex.site");
-  }
-  
-  // Fallback: use as-is
+
   return convexUrl;
 }
 
 /**
  * Get the full OAuth start URL for a provider
- * 
- * Production route: /auth/vercel/start
+ *
+ * Example:
+ * https://neighborly-herring-419.convex.cloud/auth/vercel/start
  */
 export function getOAuthStartUrl(provider: "vercel"): string {
-  const baseUrl = getConvexHttpUrl();
-  return `${baseUrl}/auth/${provider}/start`;
+  return `${getConvexHttpUrl()}/auth/${provider}/start`;
 }
