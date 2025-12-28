@@ -2,7 +2,7 @@ import { forwardRef, useCallback } from "react";
 import { type VariantProps } from "class-variance-authority";
 import { LogIn } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button.tsx";
-import { getOAuthStartUrl } from "@/lib/convex-http.ts";
+import { getConvexHttpUrl } from "@/lib/convex-http.ts";
 
 export interface SignInButtonProps
   extends Omit<React.ComponentProps<"button">, "onClick">,
@@ -64,7 +64,8 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
         // Run custom onClick first
         onClick?.(event);
 
-        window.location.href = getOAuthStartUrl("vercel");
+        const returnTo = window.location.pathname || "/dashboard/projects";
+        window.location.href = `${getConvexHttpUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
       },
       [onClick],
     );

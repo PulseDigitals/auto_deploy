@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { getOAuthStartUrl } from "@/lib/convex-http.ts";
+import { getConvexHttpUrl } from "@/lib/convex-http.ts";
 
 export function useAuth() {
   const currentUser = useQuery(api.users.getCurrentUser, {});
@@ -22,7 +22,8 @@ export function useAuth() {
     isLoading: currentUser === undefined,
     error: undefined as unknown,
     signinRedirect: () => {
-      window.location.href = getOAuthStartUrl("vercel");
+      const returnTo = window.location.pathname || "/dashboard/projects";
+      window.location.href = `${getConvexHttpUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
     },
     signoutRedirect: () => {
       window.location.href = "/";

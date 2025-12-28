@@ -284,4 +284,14 @@ export default defineSchema({
     createdAt: v.number(), // Connection creation timestamp
     updatedAt: v.number(), // Last update timestamp
   }).index("by_userId", ["userId"]),
+
+  // Hercules OAuth state store (server-side only)
+  herculesAuthStates: defineTable({
+    state: v.string(),
+    codeVerifier: v.string(),
+    returnTo: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    usedAt: v.optional(v.number()),
+  }).index("by_state", ["state"]).index("by_expiresAt", ["expiresAt"]),
 });
