@@ -70,7 +70,7 @@ export default function Settings() {
   // Fetch teams when connection is established
   useEffect(() => {
     const loadTeams = async () => {
-      if (vercelConnection?.hasToken) {
+      if (vercelConnection?.accessToken) {
         setIsFetchingTeams(true);
         try {
           const teams = await fetchVercelTeams({});
@@ -87,7 +87,7 @@ export default function Settings() {
     };
     
     loadTeams();
-  }, [vercelConnection?.hasToken, fetchVercelTeams]);
+  }, [vercelConnection?.accessToken, fetchVercelTeams]);
   
   // Handle OAuth callback success/error messages
   useEffect(() => {
@@ -622,7 +622,7 @@ export default function Settings() {
                       <div>
                         <Label className="text-xs text-muted-foreground">API Key</Label>
                         <p className="mt-1 font-mono text-xs">
-                          {renderConnection.maskedApiKey}
+                          {renderConnection.apiKey}
                         </p>
                       </div>
                       <div>
@@ -676,7 +676,7 @@ export default function Settings() {
                       <div>
                         <Label className="text-xs text-muted-foreground">Token Status</Label>
                         <p className="mt-1">
-                          {vercelConnection.hasToken ? "Valid" : "Missing"}
+                            {vercelConnection.accessToken ? "Valid" : "Missing"}
                         </p>
                       </div>
 

@@ -6,9 +6,4 @@ import { handleHerculesCallback } from "./herculesGateway.node";
  * Central OAuth callback handler
  * Delegates to Hercules callback implementation.
  */
-export async function handleCentralCallback(
-  ctx: any,
-  req: Request
-): Promise<Response> {
-  return handleHerculesCallback(ctx, req);
-}
+export const handleCentralCallback = handleHerculesCallback;

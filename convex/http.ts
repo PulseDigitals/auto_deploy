@@ -1,4 +1,4 @@
-import { httpRouter, type PublicHttpAction } from "convex/server";
+import { httpRouter } from "convex/server";
 import { startVercelOAuth } from "./oauth/vercel";
 import { handleCentralCallback } from "./gateway.node";
 import { startHerculesLogin, handleHerculesCallback } from "./herculesGateway.node";
@@ -14,19 +14,19 @@ http.route({
 http.route({
   path: "/auth/hercules/start",
   method: "GET",
-  handler: startHerculesLogin as unknown as PublicHttpAction,
+  handler: startHerculesLogin,
 });
 
 http.route({
   path: "/auth/hercules/callback",
   method: "GET",
-  handler: handleHerculesCallback as unknown as PublicHttpAction,
+  handler: handleHerculesCallback,
 });
 
 http.route({
   path: "/oauth/callback",
   method: "GET",
-  handler: handleCentralCallback as unknown as PublicHttpAction,
+  handler: handleCentralCallback,
 });
 
 export default http;

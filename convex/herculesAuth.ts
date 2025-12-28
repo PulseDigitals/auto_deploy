@@ -15,7 +15,7 @@ export const storeState = internalMutation({
       returnTo: args.returnTo,
       createdAt: Date.now(),
       expiresAt: args.expiresAt,
-      usedAt: null,
+      usedAt: undefined,
     });
   },
 });

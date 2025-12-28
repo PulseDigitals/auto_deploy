@@ -21,7 +21,7 @@ export default function AutoDeployWizard() {
   const triggerAutoDeployment = useMutation(api.autoDeploymentTrigger.triggerAutoDeployment);
   const vercelConnection = useQuery(api.vercelConnections.getVercelConnection);
 
-  const isVercelConnected = vercelConnection?.hasToken || false;
+  const isVercelConnected = Boolean(vercelConnection?.accessToken);
 
   const handleZipDeploy = async () => {
     if (!projectName || !zipFile) {

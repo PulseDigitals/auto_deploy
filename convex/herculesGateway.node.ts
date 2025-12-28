@@ -1,7 +1,7 @@
 "use node";
 
 import { api, internal } from "./_generated/api";
-import { PublicHttpAction } from "convex/server";
+import { httpAction } from "./_generated/server";
 
 type JwtPayload = {
   sub: string;
@@ -79,7 +79,7 @@ async function buildCodeChallenge(verifier: string): Promise<string> {
   return Buffer.from(new Uint8Array(hash)).toString("base64url");
 }
 
-export const startHerculesLogin: PublicHttpAction = async (ctx, request) => {
+export const startHerculesLogin = httpAction(async (ctx, request) => {
   const issuer = process.env.HERCULES_OIDC_AUTHORITY;
   const clientId = process.env.HERCULES_OIDC_CLIENT_ID;
   const redirectUri =
@@ -114,9 +114,9 @@ export const startHerculesLogin: PublicHttpAction = async (ctx, request) => {
   authorizeUrl.searchParams.set("code_challenge", codeChallenge);
 
   return Response.redirect(authorizeUrl.toString(), 302);
-};
+});
 
-export const handleHerculesCallback: PublicHttpAction = async (ctx, request) => {
+export const handleHerculesCallback = httpAction(async (ctx, request) => {
   try {
     const issuer = process.env.HERCULES_OIDC_AUTHORITY;
     const clientId = process.env.HERCULES_OIDC_CLIENT_ID;
@@ -169,4 +169,4 @@ export const handleHerculesCallback: PublicHttpAction = async (ctx, request) => 
     console.error("Hercules callback error", error);
     return new Response("Login failed", { status: 400 });
   }
-};
+});

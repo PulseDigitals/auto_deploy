@@ -63,7 +63,7 @@ export default function DeployModal({
     api.providerAuthHelpers.isProviderConnected,
     selectedProvider === "vercel" || selectedProvider === "render" 
       ? { provider: selectedProvider } 
-      : "skip"
+      : { provider: undefined }
   );
   
   // For live deployment, provider must be connected (Vercel or Render)

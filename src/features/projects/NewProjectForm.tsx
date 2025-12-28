@@ -24,7 +24,7 @@ export default function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   const triggerAutoDeployment = useMutation(api.autoDeploymentTrigger.triggerAutoDeployment);
   const vercelConnection = useQuery(api.vercelConnections.getVercelConnection);
 
-  const isVercelConnected = vercelConnection?.hasToken || false;
+  const isVercelConnected = Boolean(vercelConnection?.accessToken);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
