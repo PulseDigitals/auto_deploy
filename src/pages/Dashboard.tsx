@@ -1,6 +1,5 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { useAuth } from "@/hooks/use-auth.ts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Badge } from "@/components/ui/badge.tsx";

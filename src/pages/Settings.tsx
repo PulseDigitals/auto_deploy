@@ -1,4 +1,3 @@
-import { useAuth } from "@/hooks/use-auth.ts";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { getOAuthStartUrl } from "@/lib/convex-http.ts";
@@ -22,7 +21,6 @@ interface VercelTeam {
 }
 
 export default function Settings() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [isConnecting, setIsConnecting] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -39,6 +37,9 @@ export default function Settings() {
   const [showRenderDialog, setShowRenderDialog] = useState(false);
   const [isConnectingRender, setIsConnectingRender] = useState(false);
   
+  // Current user
+  const currentUser = useQuery(api.users.getCurrentUser, {});
+
   // Vercel connection queries
   const vercelConnection = useQuery(api.vercelConnections.getVercelConnection, {});
   
@@ -310,13 +311,13 @@ export default function Settings() {
             <div>
               <label className="text-sm font-medium">Name</label>
               <p className="text-sm text-muted-foreground mt-1">
-                {user?.profile.name || "Not set"}
+                {currentUser?.name || "Not set"}
               </p>
             </div>
             <div>
               <label className="text-sm font-medium">Email</label>
               <p className="text-sm text-muted-foreground mt-1">
-                {user?.profile.email || "Not set"}
+                {currentUser?.email || "Not set"}
               </p>
             </div>
             <Button variant="outline" disabled>
