@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/use-auth.ts";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
+import { getOAuthStartUrl } from "@/lib/convex-http.ts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { User, Key, Bell, Shield, Link2, CheckCircle2, XCircle, Loader2, Rocket, RefreshCw, AlertCircle, ExternalLink, ChevronDown, ChevronUp } from "lucide-react";
@@ -55,7 +56,6 @@ export default function Settings() {
   const revalidateRender = useAction(api.render.validateApiKey.revalidateRenderConnection);
   
   // Mutations
-  const startOAuth = useAction(api.oauth.startAuth.startAuth);
   const setInstalledTeam = useMutation(api.vercelConnections.setInstalledTeam);
   const disconnectVercel = useMutation(api.vercelConnections.disconnectVercel);
   const disconnectRender = useMutation(api.renderConnections.disconnectRender);
@@ -117,28 +117,9 @@ export default function Settings() {
     }
   }, [searchParams, setSearchParams]);
   
-  const handleConnectVercel = async () => {
+  const handleConnectVercel = () => {
     setIsConnecting(true);
-    try {
-      const deploymentUrl = window.location.origin;
-      const targetCallback = `${deploymentUrl}/dashboard/settings`;
-      const result = await startOAuth({
-        providerId: "vercel",
-        deploymentId: `vercel-connect-${Date.now()}`,
-        deploymentUrl,
-        targetCallback,
-      });
-
-      if (!result?.authUrl) {
-        throw new Error("Failed to start OAuth flow");
-      }
-
-      window.location.href = result.authUrl;
-    } catch (error) {
-      console.error("Failed to start OAuth flow:", error);
-      toast.error("Failed to start OAuth flow. Please try again.");
-      setIsConnecting(false);
-    }
+    window.location.href = getOAuthStartUrl("vercel");
   };
   
   const handleDisconnectVercel = async () => {
