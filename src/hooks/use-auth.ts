@@ -22,7 +22,7 @@ export function useAuth() {
     isLoading: currentUser === undefined,
     error: undefined as unknown,
     signinRedirect: () => {
-      const returnTo = window.location.pathname || "/dashboard/projects";
+      const returnTo = "/dashboard/projects";
       window.location.href = `${getConvexHttpUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
     },
     signoutRedirect: () => {

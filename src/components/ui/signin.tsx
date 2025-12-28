@@ -64,7 +64,7 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
         // Run custom onClick first
         onClick?.(event);
 
-        const returnTo = window.location.pathname || "/dashboard/projects";
+        const returnTo = "/dashboard/projects";
         window.location.href = `${getConvexHttpUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
       },
       [onClick],
