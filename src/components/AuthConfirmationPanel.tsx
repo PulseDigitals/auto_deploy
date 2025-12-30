@@ -15,7 +15,7 @@ export function AuthConfirmationPanel() {
     setRunning(true);
     try {
       const result = await runAuthConfirmation(convex, {
-        isSignedIn,
+        isSignedIn: Boolean(isSignedIn),
         userId: userId ?? null,
       });
       setReport(result);
@@ -23,6 +23,8 @@ export function AuthConfirmationPanel() {
       setRunning(false);
     }
   };
+
+  const reportJson = report ? JSON.stringify(report, null, 2) : null;
 
   return (
     <Card className="p-4 space-y-3">
@@ -35,9 +37,9 @@ export function AuthConfirmationPanel() {
       <div className="text-sm text-muted-foreground">
         Validates Clerk session, Convex identity, and user record (no secrets logged).
       </div>
-      {report && (
+      {reportJson && (
         <pre className="text-xs bg-muted rounded p-3 overflow-x-auto">
-          {JSON.stringify(report, null, 2)}
+          {reportJson}
         </pre>
       )}
     </Card>
