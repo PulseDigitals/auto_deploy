@@ -2,7 +2,7 @@ import { forwardRef, useCallback } from "react";
 import { type VariantProps } from "class-variance-authority";
 import { LogIn } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button.tsx";
-import { getConvexHttpActionsUrl } from "@/lib/convex-http.ts";
+import { useAuth as useClerkAuth, useClerk } from "@clerk/clerk-react";
 
 export interface SignInButtonProps
   extends Omit<React.ComponentProps<"button">, "onClick">,
@@ -59,19 +59,27 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
     },
     ref,
   ) => {
+    const { redirectToSignIn, signOut } = useClerk();
+    const { isSignedIn } = useClerkAuth();
+
     const handleClick = useCallback(
       async (event: React.MouseEvent<HTMLButtonElement>) => {
         // Run custom onClick first
         onClick?.(event);
 
         const returnTo = "/dashboard/projects";
-        window.location.href = `${getConvexHttpActionsUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
+
+        if (!isSignedIn) {
+          redirectToSignIn({ redirectUrl: returnTo });
+        } else {
+          await signOut();
+        }
       },
-      [onClick],
+      [onClick, isSignedIn, redirectToSignIn, signOut],
     );
 
     const isDisabled = disabled;
-    const buttonText = signInText || "Sign In";
+    const buttonText = isSignedIn ? signOutText || "Sign Out" : signInText || "Sign In";
     const icon = <LogIn className="size-4" />;
 
     return (

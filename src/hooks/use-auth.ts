@@ -1,32 +1,41 @@
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api.js";
-import { getConvexHttpActionsUrl } from "@/lib/convex-http.ts";
+import { useClerk, useAuth as useClerkAuth, useUser as useClerkUser } from "@clerk/clerk-react";
 
 export function useAuth() {
-  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const { isSignedIn, isLoaded, signOut } = useClerkAuth();
+  const { user: clerkUser } = useClerkUser();
+  const { redirectToSignIn } = useClerk();
 
   const user = useMemo(() => {
-    if (!currentUser) return null;
+    if (!clerkUser) return null;
+    const email =
+      clerkUser.primaryEmailAddress?.emailAddress ||
+      clerkUser.emailAddresses?.[0]?.emailAddress ||
+      "";
+    const name =
+      clerkUser.fullName ||
+      clerkUser.username ||
+      email ||
+      clerkUser.id;
     return {
       profile: {
-        name: currentUser.name ?? "User",
-        email: currentUser.email ?? "",
+        name,
+        email,
       },
     };
-  }, [currentUser]);
+  }, [clerkUser]);
 
   return {
     user,
-    isAuthenticated: Boolean(currentUser),
-    isLoading: currentUser === undefined,
+    isAuthenticated: Boolean(isSignedIn),
+    isLoading: !isLoaded,
     error: undefined as unknown,
     signinRedirect: () => {
       const returnTo = "/dashboard/projects";
-      window.location.href = `${getConvexHttpActionsUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
+      redirectToSignIn({ redirectUrl: returnTo });
     },
     signoutRedirect: () => {
-      window.location.href = "/";
+      signOut();
     },
   };
 }

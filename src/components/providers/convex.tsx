@@ -1,4 +1,5 @@
-import { ConvexProvider as ConvexProviderBase, ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ConvexReactClient } from "convex/react";
 import { getConvexClientUrl } from "@/lib/convex-http.ts";
 
 function normalizeConvexClientUrl(url: string): string {
@@ -36,8 +37,8 @@ export function ConvexProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ConvexProviderBase client={convex}>
+    <ConvexProviderWithClerk client={convex}>
       {children}
-    </ConvexProviderBase>
+    </ConvexProviderWithClerk>
   );
 }
