@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
 import { Plus, Shield, Rocket } from "lucide-react";
