@@ -1,3 +1,11 @@
+// Normalize any misconfigured HTTP Actions URL (.convex.site) back to the Convex client URL (.convex.cloud).
+function normalizeConvexUrl(url: string): string {
+  if (url.includes(".convex.site")) {
+    return url.replace(".convex.site", ".convex.cloud");
+  }
+  return url;
+}
+
 /**
  * Convex HTTP Actions base URL
  * HTTP actions are served on the SAME domain as the Convex deployment
@@ -11,7 +19,7 @@ export function getConvexHttpUrl(): string {
     );
   }
 
-  return convexUrl;
+  return normalizeConvexUrl(convexUrl);
 }
 
 /**
