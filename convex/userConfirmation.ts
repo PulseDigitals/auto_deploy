@@ -14,7 +14,7 @@ export const confirmUserRecord = query({
 
     const user = await ctx.db
       .query("users")
-      .filter((q) => q.eq(q.field("clerkUserId"), identity.subject))
+      .filter((q) => q.eq(q.field("tokenIdentifier"), identity.tokenIdentifier))
       .first();
 
     if (!user) {
@@ -28,7 +28,7 @@ export const confirmUserRecord = query({
       status: "PASS",
       details: {
         userId: user._id,
-        clerkUserId: user.clerkUserId,
+        tokenIdentifier: user.tokenIdentifier,
       },
     };
   },
