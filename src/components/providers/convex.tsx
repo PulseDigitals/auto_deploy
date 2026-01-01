@@ -1,5 +1,5 @@
 import { ConvexProvider as ConvexProviderBase, ConvexReactClient } from "convex/react";
-import { getConvexHttpUrl } from "@/lib/convex-http.ts";
+import { getConvexClientUrl } from "@/lib/convex-http.ts";
 
 function normalizeConvexClientUrl(url: string): string {
   // Convex client must point at the .convex.cloud deployment URL.
@@ -15,7 +15,7 @@ function normalizeConvexClientUrl(url: string): string {
 // Use the canonical Convex base (must be set in env). Never fall back to localhost in production.
 const convexUrl = (() => {
   try {
-    return normalizeConvexClientUrl(getConvexHttpUrl());
+    return normalizeConvexClientUrl(getConvexClientUrl());
   } catch (err) {
     // Surface a clear runtime error instead of silently pointing to localhost.
     console.error("VITE_CONVEX_URL is missing or invalid.", err);

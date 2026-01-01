@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
-import { getConvexHttpUrl } from "@/lib/convex-http.ts";
+import { getConvexHttpActionsUrl } from "@/lib/convex-http.ts";
 
 export function useAuth() {
   const currentUser = useQuery(api.users.getCurrentUser, {});
@@ -23,7 +23,7 @@ export function useAuth() {
     error: undefined as unknown,
     signinRedirect: () => {
       const returnTo = "/dashboard/projects";
-      window.location.href = `${getConvexHttpUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
+      window.location.href = `${getConvexHttpActionsUrl()}/auth/hercules/start?returnTo=${encodeURIComponent(returnTo)}`;
     },
     signoutRedirect: () => {
       window.location.href = "/";
