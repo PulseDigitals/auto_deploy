@@ -11,11 +11,6 @@ export function getConvexHttpUrl(): string {
     );
   }
 
-  // Use .convex.site for HTTP actions when a .convex.cloud URL is provided
-  if (convexUrl.includes(".convex.cloud")) {
-    return convexUrl.replace(".convex.cloud", ".convex.site");
-  }
-
   return convexUrl;
 }
 
