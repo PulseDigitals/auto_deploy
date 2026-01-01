@@ -313,41 +313,44 @@ function ProjectsContent() {
 }
 
 export default function Projects() {
-  return (
-    <>
-      <AuthLoading>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Projects</h1>
-              <p className="text-muted-foreground mt-2">
-                Manage your deployment projects
-              </p>
-            </div>
-          </div>
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 w-full" />
-            ))}
-          </div>
-        </div>
-      </AuthLoading>
+  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const isLoadingAuth = currentUser === undefined;
 
-      <Unauthenticated>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-          <div className="text-center space-y-2">
+  if (isLoadingAuth) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
             <h1 className="text-3xl font-bold">Projects</h1>
-            <p className="text-muted-foreground">
-              Sign in to manage your deployment projects
+            <p className="text-muted-foreground mt-2">
+              Manage your deployment projects
             </p>
           </div>
-          <SignInButton />
         </div>
-      </Unauthenticated>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-      <Authenticated>
-        <ProjectsContent />
-      </Authenticated>
-    </>
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold">Projects</h1>
+          <p className="text-muted-foreground">
+            Sign in to manage your deployment projects
+          </p>
+        </div>
+        <SignInButton />
+      </div>
+    );
+  }
+
+  return (
+    <ProjectsContent />
   );
 }
