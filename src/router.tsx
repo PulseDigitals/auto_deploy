@@ -11,6 +11,7 @@ import AutoDeploy from "./pages/AutoDeploy.tsx";
 import GettingStarted from "./pages/GettingStarted.tsx";
 import TestUsers from "./pages/TestUsers.tsx";
 import UserManagement from "./pages/UserManagement.tsx";
+import { RequireAuth } from "./components/auth/RequireAuth.tsx";
 
 export function AppRouter() {
   return (
@@ -19,7 +20,14 @@ export function AppRouter() {
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
 
-        <Route path="/dashboard" element={<DashboardLayout />}>
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <DashboardLayout />
+            </RequireAuth>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="projects" element={<Projects />} />
           <Route path="projects/:id" element={<ProjectDetail />} />

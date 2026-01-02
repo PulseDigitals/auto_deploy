@@ -31,8 +31,8 @@ export function useAuth() {
     isLoading: !isLoaded,
     error: undefined as unknown,
     signinRedirect: () => {
-      const returnTo = "/dashboard/projects";
-      redirectToSignIn({ redirectUrl: returnTo });
+      const returnTo = "/dashboard";
+      redirectToSignIn({ forceRedirectUrl: returnTo });
     },
     signoutRedirect: () => {
       signOut();

@@ -67,11 +67,11 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
         // Run custom onClick first
         onClick?.(event);
 
-        const returnTo = "/dashboard/projects";
+        const returnTo = "/dashboard";
 
         if (!isSignedIn) {
           redirectToSignIn({
-            // Force redirect to projects after sign-in/up (modern Clerk prop)
+            // Force redirect to dashboard after sign-in/up (modern Clerk prop)
             forceRedirectUrl: returnTo,
           });
         } else {

@@ -20,10 +20,11 @@ export function DefaultProviders({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={clerkPublishableKey}
-      // Use modern redirect props to avoid deprecation warnings
-      fallbackRedirectUrl="/dashboard/projects"
-      signInFallbackRedirectUrl="/dashboard/projects"
-      signUpFallbackRedirectUrl="/dashboard/projects"
+      // Force post-auth routing to the dashboard
+      forceRedirectUrl="/dashboard"
+      fallbackRedirectUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/dashboard"
     >
       <ConvexProvider>
         <QueryClientProvider>

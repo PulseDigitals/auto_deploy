@@ -2,9 +2,33 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import { ArrowRight, Zap, Shield, Rocket } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
+import {
+  useClerk,
+  useAuth as useClerkAuth,
+  SignedIn,
+  SignedOut,
+  SignIn,
+  SignUp,
+} from "@clerk/clerk-react";
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { redirectToSignIn, redirectToSignUp } = useClerk();
+  const { isSignedIn, isLoaded } = useClerkAuth();
+
+  const forceRedirect = "/dashboard";
+
+  const handleSignIn = () => {
+    redirectToSignIn({ forceRedirectUrl: forceRedirect });
+  };
+
+  const handleSignUp = () => {
+    redirectToSignUp({ forceRedirectUrl: forceRedirect });
+  };
+
+  const handleGoToApp = () => {
+    navigate("/dashboard");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
@@ -17,18 +41,24 @@ export default function Landing() {
             className="h-20 w-auto"
           />
           <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/pricing")}
-            >
+            <Button variant="outline" onClick={() => navigate("/pricing")}>
               Pricing
             </Button>
-            <Button
-              onClick={() => navigate("/dashboard")}
-              className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
-            >
-              Get Started
-            </Button>
+            {isLoaded && isSignedIn ? (
+              <Button
+                onClick={handleGoToApp}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              >
+                Go to Dashboard
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSignIn}
+                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+              >
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -55,21 +85,30 @@ export default function Landing() {
             </p>
 
             <div className="flex gap-4 pt-4">
-              <Button
-                size="lg"
-                onClick={() => navigate("/dashboard")}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white gap-2"
-              >
-                Get Started
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                onClick={() => navigate("/pricing")}
-              >
-                View Pricing
-              </Button>
+              {isLoaded && isSignedIn ? (
+                <Button
+                  size="lg"
+                  onClick={handleGoToApp}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white gap-2"
+                >
+                  Go to Dashboard
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  onClick={handleSignIn}
+                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white gap-2"
+                >
+                  Get Started
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              )}
+              {!(isLoaded && isSignedIn) && (
+                <Button size="lg" variant="outline" onClick={handleSignUp}>
+                  Create Account
+                </Button>
+              )}
             </div>
 
             {/* Stats */}
@@ -159,6 +198,55 @@ export default function Landing() {
               <p className="text-slate-400">
                 Deploy to Vercel, Netlify, Render, Railway, or AWS with a single platform.
               </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Auth Section (Sign In / Sign Up) */}
+      <div className="container mx-auto px-6 py-12 max-w-5xl">
+        <div className="grid md:grid-cols-2 gap-8 items-start">
+          <Card className="bg-slate-900/60 border-slate-800">
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-semibold mb-4">Sign In</h3>
+              <SignedOut>
+                <SignIn
+                  routing="path"
+                  path="/"
+                  forceRedirectUrl="/dashboard"
+                  appearance={{
+                    elements: {
+                      formButtonPrimary:
+                        "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700",
+                    },
+                  }}
+                />
+              </SignedOut>
+              <SignedIn>
+                <div className="text-sm text-green-400">You are already signed in.</div>
+              </SignedIn>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/60 border-slate-800">
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-semibold mb-4">Create Account</h3>
+              <SignedOut>
+                <SignUp
+                  routing="path"
+                  path="/"
+                  forceRedirectUrl="/dashboard"
+                  appearance={{
+                    elements: {
+                      formButtonPrimary:
+                        "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700",
+                    },
+                  }}
+                />
+              </SignedOut>
+              <SignedIn>
+                <div className="text-sm text-green-400">You already have access.</div>
+              </SignedIn>
             </CardContent>
           </Card>
         </div>
