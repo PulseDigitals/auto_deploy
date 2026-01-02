@@ -70,7 +70,10 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
         const returnTo = "/dashboard/projects";
 
         if (!isSignedIn) {
-          redirectToSignIn({ redirectUrl: returnTo });
+          redirectToSignIn({
+            // Force redirect to projects after sign-in/up (modern Clerk prop)
+            forceRedirectUrl: returnTo,
+          });
         } else {
           await signOut();
         }

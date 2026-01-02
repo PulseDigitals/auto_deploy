@@ -18,7 +18,13 @@ export function DefaultProviders({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey}>
+    <ClerkProvider
+      publishableKey={clerkPublishableKey}
+      // Use modern redirect props to avoid deprecation warnings
+      fallbackRedirectUrl="/dashboard/projects"
+      signInFallbackRedirectUrl="/dashboard/projects"
+      signUpFallbackRedirectUrl="/dashboard/projects"
+    >
       <ConvexProvider>
         <QueryClientProvider>
           <TooltipProvider>
