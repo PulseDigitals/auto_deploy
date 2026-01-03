@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
@@ -21,6 +22,7 @@ function ProjectsContent() {
   const [showVersionInput, setShowVersionInput] = useState(false);
   const [newVersion, setNewVersion] = useState("");
   const [showDeployModal, setShowDeployModal] = useState(false);
+  const navigate = useNavigate();
 
   const projects = useQuery(api.projects.listProjectsByUser, {});
   const isAdmin = useQuery(api.users.isCurrentUserAdmin, {});
@@ -125,30 +127,38 @@ function ProjectsContent() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Projects</h1>
-              <p className="text-muted-foreground mt-2">
-                Manage your deployment projects
-              </p>
-            </div>
-            <div className="flex gap-2">
-              {!adminExistsData?.exists ? (
-                <Button onClick={handleBootstrapAdmin} variant="default" className="gap-2 border-amber-500 bg-amber-500 hover:bg-amber-600">
-                  <Shield className="h-4 w-4" />
-                  Initialize Admin
-                </Button>
-              ) : (
-                <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  {isAdmin ? "Disable" : "Enable"} Admin
-                </Button>
-              )}
-              <Button onClick={() => setShowNewProject(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Project
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Projects</h1>
+            <p className="text-muted-foreground mt-2">
+              Manage your deployment projects
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {!adminExistsData?.exists ? (
+              <Button onClick={handleBootstrapAdmin} variant="default" className="gap-2 border-amber-500 bg-amber-500 hover:bg-amber-600">
+                <Shield className="h-4 w-4" />
+                Initialize Admin
               </Button>
-            </div>
+            ) : (
+              <Button onClick={handleToggleAdmin} variant="outline" className="gap-2">
+                <Shield className="h-4 w-4" />
+                {isAdmin ? "Disable" : "Enable"} Admin
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => navigate("/dashboard/auto-deploy")}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+            <Button onClick={() => setShowNewProject(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              New Project
+            </Button>
+          </div>
           </div>
 
           {isAdmin && (
