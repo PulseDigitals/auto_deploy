@@ -9,6 +9,12 @@ import { EnsureConvexUser } from "../auth/EnsureConvexUser.tsx";
 export function DefaultProviders({ children }: { children: React.ReactNode }) {
   const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
+  // Always send users to the dashboard after auth; use absolute URL to avoid Clerk-hosted fallback
+  const dashboardRedirect =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard`
+      : "/dashboard";
+
   if (!clerkPublishableKey) {
     return (
       <div className="flex items-center justify-center min-h-screen text-sm text-red-300">
@@ -22,10 +28,10 @@ export function DefaultProviders({ children }: { children: React.ReactNode }) {
     <ClerkProvider
       publishableKey={clerkPublishableKey}
       // Force post-auth routing to the dashboard
-      forceRedirectUrl="/dashboard"
-      fallbackRedirectUrl="/dashboard"
-      signInFallbackRedirectUrl="/dashboard"
-      signUpFallbackRedirectUrl="/dashboard"
+      forceRedirectUrl={dashboardRedirect}
+      fallbackRedirectUrl={dashboardRedirect}
+      signInFallbackRedirectUrl={dashboardRedirect}
+      signUpFallbackRedirectUrl={dashboardRedirect}
     >
       <ConvexProvider>
         <QueryClientProvider>

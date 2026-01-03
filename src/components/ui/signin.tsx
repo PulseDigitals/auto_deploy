@@ -67,7 +67,10 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
         // Run custom onClick first
         onClick?.(event);
 
-        const returnTo = "/dashboard";
+        const returnTo =
+          typeof window !== "undefined"
+            ? `${window.location.origin}/dashboard`
+            : "/dashboard";
 
         if (!isSignedIn) {
           redirectToSignIn({
