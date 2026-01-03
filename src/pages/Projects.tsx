@@ -14,7 +14,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card.tsx";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { SignInButton } from "@/components/ui/signin.tsx";
 import { toast } from "sonner";
 
 function ProjectsContent() {
@@ -336,16 +335,17 @@ export default function Projects() {
     );
   }
 
+  // In a protected route, currentUser should be present; handle edge case gracefully
   if (!currentUser) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Projects</h1>
-          <p className="text-muted-foreground">
-            Sign in to manage your deployment projects
-          </p>
-        </div>
-        <SignInButton />
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-3 text-center">
+        <h1 className="text-2xl font-semibold">Loading your account…</h1>
+        <p className="text-muted-foreground text-sm">
+          If this persists, please refresh the page or return to the dashboard.
+        </p>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Refresh
+        </Button>
       </div>
     );
   }
