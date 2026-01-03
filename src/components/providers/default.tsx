@@ -4,6 +4,7 @@ import { ThemeProvider } from "./theme.tsx";
 import { Toaster } from "../ui/sonner.tsx";
 import { TooltipProvider } from "../ui/tooltip.tsx";
 import { ClerkProvider } from "@clerk/clerk-react";
+import { EnsureConvexUser } from "../auth/EnsureConvexUser.tsx";
 
 export function DefaultProviders({ children }: { children: React.ReactNode }) {
   const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
@@ -31,6 +32,7 @@ export function DefaultProviders({ children }: { children: React.ReactNode }) {
           <TooltipProvider>
             <ThemeProvider>
               <Toaster />
+              <EnsureConvexUser />
               {children}
             </ThemeProvider>
           </TooltipProvider>
