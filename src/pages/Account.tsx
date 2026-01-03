@@ -12,9 +12,11 @@ export default function Account() {
   const { isLoaded, isSignedIn } = useClerkAuth();
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    // Always schedule redirect after mount; if not signed in, RequireAuth will handle gating.
     const timer = setTimeout(() => {
-      navigate("/dashboard", { replace: true });
+      if (isLoaded && isSignedIn) {
+        navigate("/dashboard", { replace: true });
+      }
     }, 2000);
     return () => clearTimeout(timer);
   }, [isLoaded, isSignedIn, navigate]);
