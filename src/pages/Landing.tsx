@@ -10,6 +10,7 @@ import {
   SignIn,
   SignUp,
 } from "@clerk/clerk-react";
+import { useEffect } from "react";
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -17,6 +18,13 @@ export default function Landing() {
   const { isSignedIn, isLoaded } = useClerkAuth();
 
   const forceRedirect = "/dashboard";
+
+  // If already signed in, immediately route to dashboard
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      navigate(forceRedirect, { replace: true });
+    }
+  }, [isLoaded, isSignedIn, navigate]);
 
   const handleSignIn = () => {
     redirectToSignIn({ forceRedirectUrl: forceRedirect });
