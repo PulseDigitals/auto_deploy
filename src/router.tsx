@@ -12,6 +12,7 @@ import GettingStarted from "./pages/GettingStarted.tsx";
 import TestUsers from "./pages/TestUsers.tsx";
 import UserManagement from "./pages/UserManagement.tsx";
 import { RequireAuth } from "./components/auth/RequireAuth.tsx";
+import Account from "./pages/Account.tsx";
 
 export function AppRouter() {
   return (
@@ -37,6 +38,7 @@ export function AppRouter() {
           <Route path="user-management" element={<UserManagement />} />
           <Route path="test-users" element={<TestUsers />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="account" element={<Account />} />
         </Route>
       </Routes>
     </BrowserRouter>
