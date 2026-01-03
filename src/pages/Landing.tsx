@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button.tsx";
 import { ArrowRight, Zap, Shield, Rocket } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card.tsx";
@@ -25,6 +25,11 @@ export default function Landing() {
       navigate(forceRedirect, { replace: true });
     }
   }, [isLoaded, isSignedIn, navigate]);
+
+  // Render-level guard to ensure immediate navigation for signed-in users
+  if (isLoaded && isSignedIn) {
+    return <Navigate to={forceRedirect} replace />;
+  }
 
   const handleSignIn = () => {
     redirectToSignIn({ forceRedirectUrl: forceRedirect });
