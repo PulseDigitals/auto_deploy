@@ -17,7 +17,10 @@ export default function Landing() {
   const { redirectToSignIn, redirectToSignUp } = useClerk();
   const { isSignedIn, isLoaded } = useClerkAuth();
 
-  const forceRedirect = "/dashboard";
+  const forceRedirect =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard`
+      : "/dashboard";
 
   // If already signed in, immediately route to dashboard
   useEffect(() => {
@@ -226,7 +229,7 @@ export default function Landing() {
                 <SignIn
                   routing="path"
                   path="/"
-                  forceRedirectUrl="/dashboard"
+                  forceRedirectUrl={forceRedirect}
                   appearance={{
                     elements: {
                       formButtonPrimary:
@@ -248,7 +251,7 @@ export default function Landing() {
                 <SignUp
                   routing="path"
                   path="/"
-                  forceRedirectUrl="/dashboard"
+                  forceRedirectUrl={forceRedirect}
                   appearance={{
                     elements: {
                       formButtonPrimary:
