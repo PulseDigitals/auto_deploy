@@ -13,6 +13,8 @@ import TestUsers from "./pages/TestUsers.tsx";
 import UserManagement from "./pages/UserManagement.tsx";
 import { RequireAuth } from "./components/auth/RequireAuth.tsx";
 import Account from "./pages/Account.tsx";
+import SignInPage from "./pages/SignInPage.tsx";
+import SignUpPage from "./pages/SignUpPage.tsx";
 
 export function AppRouter() {
   return (
@@ -20,6 +22,8 @@ export function AppRouter() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/sign-in" element={<SignInPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
 
         <Route
           path="/dashboard"
