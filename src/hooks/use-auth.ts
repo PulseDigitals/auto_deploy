@@ -35,7 +35,7 @@ export function useAuth() {
         typeof window !== "undefined"
           ? `${window.location.origin}/dashboard`
           : "/dashboard";
-      redirectToSignIn({ forceRedirectUrl: returnTo });
+      redirectToSignIn({ redirectUrl: returnTo });
     },
     signoutRedirect: () => {
       signOut();

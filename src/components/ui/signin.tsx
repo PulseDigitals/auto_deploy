@@ -74,8 +74,7 @@ export const SignInButton = forwardRef<HTMLButtonElement, SignInButtonProps>(
 
         if (!isSignedIn) {
           redirectToSignIn({
-            // Force redirect to dashboard after sign-in/up (modern Clerk prop)
-            forceRedirectUrl: returnTo,
+            redirectUrl: returnTo,
           });
         } else {
           await signOut();

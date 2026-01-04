@@ -27,11 +27,8 @@ export function DefaultProviders({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider
       publishableKey={clerkPublishableKey}
-      // Force post-auth routing to the dashboard
-      forceRedirectUrl={dashboardRedirect}
-      fallbackRedirectUrl={dashboardRedirect}
-      signInFallbackRedirectUrl={dashboardRedirect}
-      signUpFallbackRedirectUrl={dashboardRedirect}
+      // Direct post-auth routing to the dashboard
+      redirectUrl={dashboardRedirect}
     >
       <ConvexProvider>
         <QueryClientProvider>

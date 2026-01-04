@@ -35,11 +35,11 @@ export default function Landing() {
   }
 
   const handleSignIn = () => {
-    redirectToSignIn({ forceRedirectUrl: forceRedirect });
+    redirectToSignIn({ redirectUrl: forceRedirect });
   };
 
   const handleSignUp = () => {
-    redirectToSignUp({ forceRedirectUrl: forceRedirect });
+    redirectToSignUp({ redirectUrl: forceRedirect });
   };
 
   const handleGoToApp = () => {
@@ -229,7 +229,7 @@ export default function Landing() {
                 <SignIn
                   routing="path"
                   path="/"
-                  forceRedirectUrl={forceRedirect}
+                  redirectUrl={forceRedirect}
                   appearance={{
                     elements: {
                       formButtonPrimary:
@@ -251,7 +251,7 @@ export default function Landing() {
                 <SignUp
                   routing="path"
                   path="/"
-                  forceRedirectUrl={forceRedirect}
+                  redirectUrl={forceRedirect}
                   appearance={{
                     elements: {
                       formButtonPrimary:

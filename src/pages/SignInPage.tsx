@@ -14,7 +14,7 @@ export default function SignInPage() {
         <SignIn
           routing="path"
           path="/sign-in"
-          forceRedirectUrl={redirect}
+          redirectUrl={redirect}
           appearance={{
             elements: {
               formButtonPrimary:
