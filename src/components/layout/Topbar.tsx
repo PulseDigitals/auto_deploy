@@ -2,9 +2,11 @@ import { LogOut } from "lucide-react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api.js";
 import { Button } from "@/components/ui/button.tsx";
+import { useNavigate } from "react-router-dom";
 
 export default function Topbar() {
   const user = useQuery(api.users.getCurrentUser, {});
+  const navigate = useNavigate();
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900 flex items-center justify-between px-6">
@@ -17,6 +19,15 @@ export default function Topbar() {
             {user?.email || "user@example.com"}
           </p>
         </div>
+
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/dashboard/account")}
+          className="gap-2"
+        >
+          Profile
+        </Button>
 
         <Button
           variant="ghost"
