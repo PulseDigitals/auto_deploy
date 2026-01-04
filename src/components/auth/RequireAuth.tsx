@@ -1,11 +1,8 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth as useClerkAuth } from "@clerk/clerk-react";
+import { type PropsWithChildren } from "react";
 
-type Props = {
-  children: JSX.Element;
-};
-
-export function RequireAuth({ children }: Props) {
+export function RequireAuth({ children }: PropsWithChildren) {
   const { isLoaded, isSignedIn } = useClerkAuth();
   const location = useLocation();
 
