@@ -7,7 +7,10 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import { EnsureConvexUser } from "../auth/EnsureConvexUser.tsx";
 
 export function DefaultProviders({ children }: { children: React.ReactNode }) {
-  const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  // Accept either Vite or Next-style env naming to avoid missing key at runtime.
+  const clerkPublishableKey =
+    import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ||
+    import.meta.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
   // Always send users to the dashboard after auth; use absolute URL to avoid Clerk-hosted fallback
   const dashboardRedirect =
